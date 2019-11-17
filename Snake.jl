@@ -19,6 +19,7 @@ mutable struct Cell
     food::Bool
     snakes::BitSet # snakes (indices) occupying the cell /
                      # colliding at the cell
+    ishead
 end
 
 mutable struct Board
@@ -34,7 +35,7 @@ mutable struct Game
     gameover
 end
 
-struct SnakeEnv
+mutable struct SnakeEnv
     game
 end
 
@@ -42,6 +43,7 @@ SnakeEnv(size, n) = SnakeEnv(Game(size, n))
 
 done(env::SnakeEnv) = env.game.gameover
 state(env::SnakeEnv) = gamestate(env.game)
+state(env::SnakeEnv, st) = (env.game = Game(st))
 
 
 function step!(env::SnakeEnv, moves)
@@ -81,7 +83,7 @@ alive(s::Snake) = s.alive
 health(s::Snake) = s.health
 health(s::Snake, i) = (s.health = i)
 
-Cell(indices) = Cell(indices, false, BitSet())
+Cell(indices) = Cell(indices, false, BitSet(), false)
 Snake(i) = Snake(i, [], SNAKE_MAX_HEALTH, true, nothing, nothing)
 foodtime(t) = t + rand(9:12)
 Board() = Board((8, 8))
@@ -123,20 +125,22 @@ end
 
 done(b::Board) = (length(filter(alive, b.snakes)) <= 1)
 Game(size, n) = Game(Board(size, n))
-Game(b::Board) = Game(b, 1, foodtime(1), done(b))
+Game(b::Board, t=1) = Game(b, t, foodtime(t), done(b))
 
 function gamestate(g::Game)
     b = g.board
     r, c = size(b.cells)
     return deepcopy((height=r, width=r,
-        food=b.food, snakes=b.snakes, done=g.gameover,))
+        food=b.food, snakes=b.snakes, done=g.gameover, turn=g.turn))
 end
 
 function Game(state::NamedTuple)
-    snakes = state[:snakes]
-    food = state[:food]
+    snakes = deepcopy(state[:snakes])
+    food = deepcopy(state[:food])
     c = cells(state[:height], state[:width], snakes, food)
-    return Game(Board(c, snakes, food))
+    b = Board(c, snakes, food)
+    markheads(b, snakes, true)
+    return Game(b, state[:turn])
 end
 
 function pick_cell!(cells::Set{Cell})
@@ -172,8 +176,12 @@ function Base.push!(snake::Snake, ::Nothing)
 end
 
 function removetail!(b::Board, snake::Snake)
-    i = popfirst!(snake.trail)
-    pop!(snakes(b.cells[i...]), id(snake))
+    t = tail(snake)
+    popfirst!(snake.trail)
+    if !all(head(snake) .== t)
+        pop!(snakes(b.cells[t...]), id(snake))
+    end
+    
 end
 
 function pick_cells(f, cells, n, delete_neighbours=false)
@@ -220,7 +228,11 @@ function Base.show(io::IO, b::Board)
             else
                 s = snakes(cell)
                 if length(s) == 1
-                    print(io, collect(s)[1])
+                    if cell.ishead
+                        print(io, "%")
+                    else    
+                        print(io, collect(s)[1])
+                    end
                 else
                     print(io, "X")
                 end
@@ -239,6 +251,8 @@ function move(g::Game, moves)
     
     food = board.food
     cells = board.cells
+
+    markheads(board, snakes, false)
     for (s, m) in zip(snakes, moves)
         !alive(s) && continue
         health(s, health(s) - 1)
@@ -282,6 +296,7 @@ function move(g::Game, moves)
     end
 
     g.gameover = done(board)
+    markheads(board, snakes, true)
 
     return g
 end
@@ -289,6 +304,7 @@ end
 function handlecollisions(board::Board, S)
     for s in S
         !alive(s) && continue
+
         cell = board.cells[head(s)...]
 
         if length(snakes(cell)) == 1
@@ -318,6 +334,7 @@ function handlecollisions(board::Board, S)
         end
 
         # randomly pick a survivor
+        
         survivor = rand(peers)
         foreach(x -> x != survivor ?
             kill!(board, x, :HEAD_COLLISION) : nothing, peers)
@@ -361,7 +378,7 @@ end
 
 function kill!(board::Board, s::Snake, reason)
     !s.alive && return
-
+    println("Kill: $(id(s)) >> $(reason)")
     cells = board.cells
     for i in collect(s.trail)
         i == nothing && continue
@@ -375,5 +392,15 @@ function kill!(board::Board, s::Snake, reason)
 end
 
 head(s::Snake) = s.trail[end]
+tail(s::Snake) = s.trail[1]
 Base.length(s::Snake) = length(s.trail)
 id(s::Snake) = s.id
+
+
+function markheads(b::Board, snakes, v=true)
+    cells = b.cells
+    for snake in snakes
+        !alive(snake) && continue
+        cells[head(snake)...].ishead = v
+    end
+end
