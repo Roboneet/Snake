@@ -36,8 +36,25 @@ function find_moves(s, N)
 end
 
 function find_move(s, i)
+	# one problem: it will never moveto the cell that contained another snake's tail in the previous trun
 	good_moves = astar(s, i)
-	return good_moves[1]
+	return snake_eye(s, good_moves, i)
+end
+
+# prefer moves that could eliminate competition
+# avoid ones that could eliminate the snake
+function snake_eye(state, moves, i) 
+	snakes = state[:snakes]
+	snake = snakes[i]
+	v = map(x -> sum(map(y -> begin
+			!y.alive && return 0
+			y == snake && return 0
+			sum(abs.(head(y) .- x)) != 1 && return 0
+			length(y) >= length(snake) && return -1
+			return 1
+		end, snakes)), moves)
+	val, m = findmax(v)
+	return moves[m]
 end
 
 function path(cls, I, J, visited, p=[])
