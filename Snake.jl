@@ -20,6 +20,8 @@ mutable struct Cell
     snakes::BitSet # snakes (indices) occupying the cell /
                      # colliding at the cell
     ishead
+    istail
+    value # any metadata for the display
 end
 
 mutable struct Board
@@ -83,10 +85,14 @@ alive(s::Snake) = s.alive
 health(s::Snake) = s.health
 health(s::Snake, i) = (s.health = i)
 
-Cell(indices) = Cell(indices, false, BitSet(), false)
+Cell(indices) = Cell(indices, false, BitSet(), false, false, nothing)
 Snake(i) = Snake(i, [], SNAKE_MAX_HEALTH, true, nothing, nothing)
 foodtime(t) = t + rand(9:12)
 Board() = Board((8, 8))
+
+function Base.:<(s::Snake, w::Snake)
+    return !(length(s) > length(w)) && (health(s) < health(w))
+end
 
 function cells(r, c)
     cells = Array{Cell, 2}(undef, (r, c))
@@ -108,6 +114,7 @@ function cells(r, c, S, food)
     for i in food
         food!(cls[i...])
     end
+    markends(cls, S, true)
     return cls
 end
 
@@ -139,7 +146,6 @@ function Game(state::NamedTuple)
     food = deepcopy(state[:food])
     c = cells(state[:height], state[:width], snakes, food)
     b = Board(c, snakes, food)
-    markheads(b, snakes, true)
     return Game(b, state[:turn])
 end
 
@@ -215,6 +221,10 @@ Base.show(io::IO, g::SnakeEnv) = show(io, g.game)
 Base.show(io::IO, g::Game) = show(io, g.board)
 function Base.show(io::IO, b::Board)
     cells = b.cells
+    showcells(io, cells)
+end
+
+function showcells(io, cells)
     r, c = size(cells)
     println(io, "-"^(r + 2))
     for i=1:r
@@ -230,6 +240,8 @@ function Base.show(io::IO, b::Board)
                 if length(s) == 1
                     if cell.ishead
                         print(io, "%")
+                    elseif cell.istail
+                        print(io, "/")
                     else    
                         print(io, collect(s)[1])
                     end
@@ -252,7 +264,7 @@ function move(g::Game, moves)
     food = board.food
     cells = board.cells
 
-    markheads(board, snakes, false)
+    markends(board, snakes, false)
     for (s, m) in zip(snakes, moves)
         !alive(s) && continue
         health(s, health(s) - 1)
@@ -296,48 +308,72 @@ function move(g::Game, moves)
     end
 
     g.gameover = done(board)
-    markheads(board, snakes, true)
+    markends(board, snakes, true)
 
     return g
 end
 
 function handlecollisions(board::Board, S)
-    for s in S
-        !alive(s) && continue
-
-        cell = board.cells[head(s)...]
+    cells = board.cells
+    eachsnake(S) do s
+        cell = cells[head(s)...]
 
         if length(snakes(cell)) == 1
             H = hassnakebody(cell, s)
 
-            !H && continue
+            !H && return
             # tried to bite itself
             kill!(board, s, :BIT_ITSELF)
-            continue
         end
+    end
 
-        L = collect(snakes(cell))
-        peers = S[L] # includes `s`
+    eachsnake(S) do s
+        cell = cells[head(s)...]
+
+        L = deepcopy(snakes(cell))
+        pop!(L, id(s))
+
+        peers = S[collect(L)] 
+        
         if any(map(x -> hassnakebody(cell, x), peers))
             # tried to bite another snake
             kill!(board, s, :BIT_ANOTHER_SNAKE)
-            continue
+            return
         end
 
-
-        G = peers[length.(peers) .>= length(s)]
-        length(G) == 1 && continue # `s` is the biggest snake
-
-        if any(length.(G) .> length(s)) || any(health.(G) .> health(s))
-            kill!(board, s, :HEAD_COLLISION) # `s` is not the biggest snake :/
-            continue
+        if any(map(x -> x > s, peers))
+            kill!(board, s, :HEAD_COLLISION)
+            return
         end
+
+        eachsnake(filter(x -> x < s, peers)) do x
+            kill!(board, x, :HEAD_COLLISION)
+        end
+
+        O = filter(x -> !(x < s), peers)
+        isempty(length(O)) && return
+        
+        F = vcat(O, s)
+        survivor = rand(F)
+        foreach(x -> x != survivor ?
+            kill!(board, x, :HEAD_COLLISION) : nothing, F)
+
+        
+
+        # G = peers[length.(peers) .>= length(s)]
+        # length(G) == 1 && continue # `s` is the biggest snake
+
+        # if any(length.(G) .> length(s)) || any(health.(G) .> health(s))
+        #     kill!(board, s, :HEAD_COLLISION) # `s` is not the biggest snake :/
+        #     continue
+        # end
+
 
         # randomly pick a survivor
         
-        survivor = rand(peers)
-        foreach(x -> x != survivor ?
-            kill!(board, x, :HEAD_COLLISION) : nothing, peers)
+        # survivor = rand(peers)
+        # foreach(x -> x != survivor ?
+        #     kill!(board, x, :HEAD_COLLISION) : nothing, peers)
 
     end
 end
@@ -397,10 +433,17 @@ Base.length(s::Snake) = length(s.trail)
 id(s::Snake) = s.id
 
 
-function markheads(b::Board, snakes, v=true)
-    cells = b.cells
+function eachsnake(f, snakes::AbstractArray{Snake,1})
     for snake in snakes
         !alive(snake) && continue
+        f(snake)
+    end
+end
+
+markends(b::Board, snakes, v=true) = markends(b.cells, snakes, v)
+function markends(cells, snakes, v=true)
+    eachsnake(snakes) do snake
+        cells[tail(snake)...].istail = v
         cells[head(snake)...].ishead = v
     end
 end
