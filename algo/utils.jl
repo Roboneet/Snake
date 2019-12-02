@@ -1,7 +1,6 @@
-include("Snake.jl")
+include("../env/Snake.jl")
 
-play(n=4) = play((8, 8), n)
-function play(si, N)
+function play(algo, si, N)
 	env = SnakeEnv(si, N)
 	
 	display(env)
@@ -11,7 +10,7 @@ function play(si, N)
 		while !done(env)
 			s = state(env)
 			
-			moves = findmoves(s, N)
+			moves = findmoves(algo, s, N)
 			push!(memory[:states], s)
 			push!(memory[:moves], moves)
 			
@@ -27,18 +26,33 @@ function play(si, N)
 	return memory
 end
 
-
-function findmoves(s, N)
-	# return map(x -> findmove(s, x), 1:N)
-	return assign(s, N)
+xy(k) = (k["y"] + 1,k["x"] + 1)
+function state(params::Dict)
+    board_p = params["board"]
+    height = board_p["height"]
+    width = board_p["width"]
+    food = Set(xy.(board_p["food"]))
+    snakes = Snake[]
+    me = 1
+    for i=1:length(board_p["snakes"])
+        u = board_p["snakes"][i]
+        if u["id"] === params["you"]["id"]
+            me = i
+        end
+        trail = reverse(collect(xy.(u["body"])))
+        trail = map(p -> in_bounds(p..., height, width) ? 
+                    p : nothing, trail)
+        if length(trail) > 1
+            direction = trail[end] .- trail[end - 1]
+        else
+            direction = nothing
+        end
+        push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
+    end
+    return (height=height, width=width, food=food,
+        snakes=snakes, done=false, turn=params["turn"], me=me)
 end
 
-function findmove(s, i)
-	# one problem: it will never moveto the cell that contained another snake's tail in the previous trun
-	good_moves = astar(s, i)
-	# @show good_moves
-	return rand(good_moves)
-end
 
 # prefer moves that could eliminate competition
 # avoid ones that could eliminate the snake
@@ -236,7 +250,7 @@ function floodfill!(cells, i, j, z, cnt)
 	return p
 end
 
-function assign(st, N)
+function assign(st, N, findmove)
 	food = collect(st[:food])
 	allsnakes = collect(st[:snakes])
 	cls = cells(st[:height], st[:width], allsnakes, food)
