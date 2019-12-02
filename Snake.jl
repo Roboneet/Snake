@@ -72,7 +72,8 @@ snakes(g::Game) = snakes(g.board)
 snakes(b::Board) = b.snakes
 hasfood(c::Cell) = c.food
 indices(c::Cell) = c.indices
-unoccupied(c::Cell) = !hasfood(c) && length(snakes(c)) == 0
+hassnake(c::Cell) = !isempty(snakes(c))
+unoccupied(c::Cell) = !hasfood(c) && !hassnake(c)
 food!(c::Cell) = (c.food = true)
 eat!(c::Cell) = (c.food = false)
 function hassnakebody(c::Cell, s::Snake)
@@ -91,7 +92,11 @@ foodtime(t) = t + rand(9:12)
 Board() = Board((8, 8))
 
 function Base.:<(s::Snake, w::Snake)
-    return !(length(s) > length(w)) && (health(s) < health(w))
+    return length(s) < length(w)
+end
+
+function Base.isequal(s::Snake, w::Snake)
+    return length(s) == length(w)
 end
 
 function cells(r, c)
@@ -114,6 +119,7 @@ function cells(r, c, S, food)
     for i in food
         food!(cls[i...])
     end
+    
     markends(cls, S, true)
     return cls
 end
@@ -161,15 +167,19 @@ in_bounds(i, j, r, c) = (1 <= i <= r) && (1 <= j <= c)
 function neighbours(cell::Cell, cells::AbstractArray{Cell, 2})
     r, c = size(cells)
     i, j = cell.indices
-    neighbours = Set{Cell}()
+    return map(x -> cells[x...], neighbours(cell.indices, r, c))
+end
+
+function neighbours(cell::Tuple{Int,Int}, r, c)
+    i, j = cell
+    n = []
     for (Δi, Δj) in [(0, 1), (0, -1), (1, 0), (-1, 0)]
         I, J = i + Δi, j + Δj
         if in_bounds(I, J, r, c)
-            @inbounds m = cells[I, J]
-            push!(neighbours, m)
+            push!(n, (I, J,))
         end
     end
-    return neighbours
+    return n
 end
 
 function Base.push!(snake::Snake, c::Cell)
@@ -223,7 +233,8 @@ function Base.show(io::IO, b::Board)
     cells = b.cells
     showcells(io, cells)
 end
-
+showcells(io, s::NamedTuple) = showcells(io, cells(s[:height], s[:width], s[:snakes], s[:food]))
+showcells(cells) = showcells(stdout, cells)
 function showcells(io, cells)
     r, c = size(cells)
     println(io, "-"^(r + 2))
@@ -341,40 +352,17 @@ function handlecollisions(board::Board, S)
             return
         end
 
-        if any(map(x -> x > s, peers))
+        if any(map(x -> s < x, peers)) # it dies 
             kill!(board, s, :HEAD_COLLISION)
             return
         end
 
-        eachsnake(filter(x -> x < s, peers)) do x
-            kill!(board, x, :HEAD_COLLISION)
+        if any(map(x -> isequal(s, x), peers)) # everyone dies
+            eachsnake(peers) do x
+                kill!(board, x, :HEAD_COLLISION)
+            end
+            return            
         end
-
-        O = filter(x -> !(x < s), peers)
-        isempty(length(O)) && return
-        
-        F = vcat(O, s)
-        survivor = rand(F)
-        foreach(x -> x != survivor ?
-            kill!(board, x, :HEAD_COLLISION) : nothing, F)
-
-        
-
-        # G = peers[length.(peers) .>= length(s)]
-        # length(G) == 1 && continue # `s` is the biggest snake
-
-        # if any(length.(G) .> length(s)) || any(health.(G) .> health(s))
-        #     kill!(board, s, :HEAD_COLLISION) # `s` is not the biggest snake :/
-        #     continue
-        # end
-
-
-        # randomly pick a survivor
-        
-        # survivor = rand(peers)
-        # foreach(x -> x != survivor ?
-        #     kill!(board, x, :HEAD_COLLISION) : nothing, peers)
-
     end
 end
 
@@ -441,8 +429,9 @@ function eachsnake(f, snakes::AbstractArray{Snake,1})
 end
 
 markends(b::Board, snakes, v=true) = markends(b.cells, snakes, v)
-function markends(cells, snakes, v=true)
-    eachsnake(snakes) do snake
+
+function markends(cells, S, v=true)
+    eachsnake(S) do snake
         cells[tail(snake)...].istail = v
         cells[head(snake)...].ishead = v
     end

@@ -1,7 +1,8 @@
 include("Snake.jl")
 
-function play(N::Int = 4)
-	env = SnakeEnv((8, 8), N)
+play(n=4) = play((8, 8), n)
+function play(si, N)
+	env = SnakeEnv(si, N)
 	
 	display(env)
 
@@ -28,7 +29,7 @@ end
 
 
 function findmoves(s, N)
-	# return map(x -> find_move(s, x), 1:N)
+	# return map(x -> findmove(s, x), 1:N)
 	return assign(s, N)
 end
 
@@ -62,28 +63,34 @@ function nearbigsnake(cell, snake, cells, snakeslist)
 	# length(n) == 1 && n[1] == head(snake) && return false
 	S = union((snakes.(n))...)
 	pop!(S, id(snake))
-	
-	return !(isempty(filter(x -> !(snakeslist[x] < snake), S)))
+	K = filter(x -> !(snakeslist[x] < snake), S)
+	return !(isempty(K))
 end
 
 nearfood(cell, cells) =
 	!isempty(filter(x -> hasfood(x), neighbours(cell, cells)))
 
+fullhealth(snake) = (health(snake) == SNAKE_MAX_HEALTH)
+
 function willtailmove(cell, cells, snakeslist)
 	isempty(snakes(cell)) && return true # this case doesn't happen though
 	# is there an next state where it won't (very pessimistic)
 	snake = collect(snakes(cell))[1]
-	H = head(snakeslist[snake])
-	nf = nearfood(cells[H...], cells)
-	return !nf
+	# H = head(snakeslist[snake])
+	# nf = nearfood(cells[H...], cells)
+	# return !nf
+	return !fullhealth(snakeslist[snake]) # has eaten ?
 end
 
-function issafe(cell, snake, cells, snakes) # is the cell safe to take?
-	nearbigsnake(cell, snake, cells, snakes) && return false
+
+freecell(cell, cells, snakes) = isempty(cell.snakes) ||
+		 (cell.istail &&  willtailmove(cell, cells, snakes))
+
+# function issafe(cell, snake, cells, snakes) # is the cell safe to take?
+# 	nearbigsnake(cell, snake, cells, snakes) && return false
 	
-	return isempty(cell.snakes) ||
-		 (cell.istail && (tail(snake) == indices(cell) || willtailmove(cell, cells, snakes)))
-end
+# 	return freecell(cell, cells, snakes)
+# end
 
 function path(cls, I, J, visited, p=[]; head=false)
 	I == J && return true
@@ -118,6 +125,36 @@ function shortest_distance(cls::AbstractArray{Cell,2},
 	end
 end
 
+# higher order function to run a list of functions until the end or until one of it provides an empty output or there is only one element left
+flow(fs...) = flow(fs)
+function flow(fs) 
+	function br(f, g) 
+		return x -> begin
+		    l = f(x)
+		    isempty(l) && return x
+		    length(l) == 1 && return l
+		    g(l)
+	    end
+	end
+	foldr(br, fs)
+end
+choose(f) = y -> filter(f, y)
+
+function biggercluster(I, clusters, cdict)
+	return y -> begin
+	    K = map(x -> clusters[(I .+ x)...], y)
+	    l = map(i -> K[i] != 0 ? cdict[K[i]] : begin
+	    	L = (I .+ y[i])
+	    	s = minimum(map(x -> clusters[x...], 
+	    		neighbours(L, size(clusters)...)))
+	    	return s
+		end, 1:length(K))
+		M = maximum(l)
+		return map(x -> x[1], 
+			filter(x -> x[2] == M, collect(zip(y, l))))
+	end
+end
+
 function astar(s, i)
 	snake = s[:snakes][i]
 	food = collect(s[:food])
@@ -129,18 +166,30 @@ function astar(s, i)
 	I = head(snake)
 	r, c = s[:height], s[:width]
 
-	dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-	cls = cells(r, c, s[:snakes], food)
-
-	D = filter(x -> in_bounds((I .+ x)..., r, c), dirs)
 	
-	isempty(D) && return dirs
+	cls = cells(r, c, s[:snakes], food)
+	# io = IOBuffer()
+	# println(io, s[:turn])
+	# showcells(io, cls)
+	# println(String(take!(io)))
+	# choose(x -> issafe(cls[(I .+ x)...], snake, cls, s[:snakes]))
+	clusters, cdict = floodfill(cls)
 
-	safe = filter(x -> issafe(cls[(I .+ x)...], snake, cls, s[:snakes]), D)
+	pipe = flow(choose(x -> in_bounds((I .+ x)..., r, c)),                   
+		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes])),            
+		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),  
+		biggercluster(I, clusters, cdict))  
+
+	safe = pipe(DIRECTIONS)
+
+	length(safe) == 1 && return safe
+
+	health(snake) > SNAKE_MAX_HEALTH*0.75 && (rand() < 0.75) && return safe
+
+
+
 	# @show safe, food
 	
-	isempty(safe) && return D	
-
 	isempty(food) && return safe
 
 	block_food = zeros(length(safe), length(food))
@@ -154,6 +203,37 @@ function astar(s, i)
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
 	return map(x -> safe[x[1]], good_moves)
+end
+
+function floodfill(cells)
+	r, c = size(cells)
+	z = zeros(Int, (r, c,))
+	cnt = 1
+	pdict = Dict()
+	for i=1:r
+		for j=1:c
+			z[i, j] != 0 && continue
+			hassnake(cells[i, j]) && continue
+			p = floodfill!(cells, i, j, z, cnt)
+			pdict[cnt] = p
+			cnt += 1
+		end
+	end
+	return z, pdict
+end
+
+function floodfill!(cells, i, j, z, cnt)
+	cell = cells[i, j]
+	hassnake(cell) && return 0
+	z[i, j] = cnt
+	p = 1
+	ns = collect(neighbours(cell, cells))
+	for n in ns
+		k, l = indices(n)
+		z[k, l] != 0 && continue
+		p += floodfill!(cells, k, l, z, cnt)
+	end
+	return p
 end
 
 function assign(st, N)
