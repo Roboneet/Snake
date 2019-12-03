@@ -2,11 +2,11 @@ using Mux
 using Mux: URI
 using JSON
 using HTTP
-# using Blink
+using Blink
 
 include("../algo/algo.jl")
 
-DEBUG = false
+DEBUG = true
 
 if DEBUG && !isdefined(Main, :w)
     w = Blink.Window()

@@ -70,16 +70,18 @@ end
 # 	return moves[m]
 # end
 
-function nearbigsnake(cell, snake, cells, snakeslist)
+function nearsnake(cell, snake, cells, snakeslist, cmp)
 	n = filter(x -> x.ishead, neighbours(cell, cells))
 	
 	length(n) == 0 && return false 
-	# length(n) == 1 && n[1] == head(snake) && return false
 	S = union((snakes.(n))...)
 	pop!(S, id(snake))
-	K = filter(x -> !(snakeslist[x] < snake), S)
+	K = filter(x -> cmp(snakeslist[x], snake), S)
 	return !(isempty(K))
 end
+
+nearsmallsnake(args...) = nearsnake(args..., (a, b) -> a < b)
+nearbigsnake(args...) = nearsnake(args..., (a, b) -> !(a < b))
 
 nearfood(cell, cells) =
 	!isempty(filter(x -> hasfood(x), neighbours(cell, cells)))
@@ -169,54 +171,50 @@ function biggercluster(I, clusters, cdict)
 	end
 end
 
-function astar(s, i)
+function directionpipe(s, i)
 	snake = s[:snakes][i]
 	food = collect(s[:food])
-	
-	if !snake.alive
-		return (0,0)
-	end
-	
 	I = head(snake)
 	r, c = s[:height], s[:width]
 
-	
 	cls = cells(r, c, s[:snakes], food)
-	# io = IOBuffer()
-	# println(io, s[:turn])
-	# showcells(io, cls)
-	# println(String(take!(io)))
-	# choose(x -> issafe(cls[(I .+ x)...], snake, cls, s[:snakes]))
-	clusters, cdict = floodfill(cls)
+	directionpipe(s, i, cls, I)
+end
 
-	pipe = flow(choose(x -> in_bounds((I .+ x)..., r, c)),                   
+function directionpipe(s, i, cls, I)
+	clusters, cdict = floodfill(cls)
+	return flow(choose(x -> in_bounds((I .+ x)..., r, c)),                   
 		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes])),            
 		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),  
-		biggercluster(I, clusters, cdict))  
+		biggercluster(I, clusters, cdict),
+		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes]))) # may return 0 elements 
+end
 
-	safe = pipe(DIRECTIONS)
+astar(s, i) = astar(s, i, directionpipe(s, i))
 
-	length(safe) == 1 && return safe
+function astar(s, i, dir)
+	snake = s[:snakes][i]
 
-	health(snake) > SNAKE_MAX_HEALTH*0.75 && (rand() < 0.75) && return safe
+	!snake.alive && return 0
+	food = collect(s[:food])
+	I = head(snake)
+	cls = cells(r, c, s[:snakes], food)
+	return astar(cls, I, food, dir)
+end
 
-
-
-	# @show safe, food
+function astar(cls, I, Js, dir)
+	length(dir) == 1 && return dir
+	isempty(Js) && return dir
 	
-	isempty(food) && return safe
-
-	block_food = zeros(length(safe), length(food))
-
-	for i=1:length(safe), j=1:length(food)
-		block = I .+ safe[i]
-		block_food[i, j] = shortest_distance(cls, block, food[j])
+	block_food = zeros(length(dir), length(Js))
+	for i=1:length(dir), j=1:length(food)
+		block = I .+ dir[i]
+		block_food[i, j] = shortest_distance(cls, block, Js[j])
 	end
-	# @show block_food
 	
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
-	return map(x -> safe[x[1]], good_moves)
+	return map(x -> dir[x[1]], good_moves)
 end
 
 function floodfill(cells)
