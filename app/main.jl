@@ -67,7 +67,7 @@ end
    page("/:s/start", respond("{color:#f00}")),
    page("/:s/move", move),
    page("/:s/ping", respond("ok")),
-   page("/:s/end", foo),
+   page("/:s/end", foo), 
    Mux.notfound()) 
 
 

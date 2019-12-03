@@ -159,7 +159,7 @@ function biggercluster(I, clusters, cdict)
 	    K = map(x -> clusters[(I .+ x)...], y)
 	    l = map(i -> K[i] != 0 ? cdict[K[i]] : begin
 	    	L = (I .+ y[i])
-	    	s = minimum(map(x -> clusters[x...], 
+	    	s = maximum(map(x -> clusters[x...], 
 	    		neighbours(L, size(clusters)...)))
 	    	return s
 		end, 1:length(K))
