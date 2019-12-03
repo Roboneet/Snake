@@ -152,7 +152,7 @@ function flow(fs)
 		    g(l)
 	    end
 	end
-	foldr(br, fs)
+	foldr(br, fs, init=identity)
 end
 choose(f) = y -> filter(f, y)
 
@@ -182,12 +182,14 @@ function directionpipe(s, i)
 end
 
 function directionpipe(s, i, cls, I)
+	snake = s[:snakes][i]
 	clusters, cdict = floodfill(cls)
-	return flow(choose(x -> in_bounds((I .+ x)..., r, c)),                   
+	return (flow(choose(x -> in_bounds((I .+ x)..., s[:height], s[:width])),                   
 		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes])),            
 		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),  
 		biggercluster(I, clusters, cdict),
 		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes]))) # may return 0 elements 
+	)(DIRECTIONS)
 end
 
 astar(s, i) = astar(s, i, directionpipe(s, i))
@@ -198,7 +200,7 @@ function astar(s, i, dir)
 	!snake.alive && return 0
 	food = collect(s[:food])
 	I = head(snake)
-	cls = cells(r, c, s[:snakes], food)
+	cls = cells(s)
 	return astar(cls, I, food, dir)
 end
 
@@ -207,7 +209,7 @@ function astar(cls, I, Js, dir)
 	isempty(Js) && return dir
 	
 	block_food = zeros(length(dir), length(Js))
-	for i=1:length(dir), j=1:length(food)
+	for i=1:length(dir), j=1:length(Js)
 		block = I .+ dir[i]
 		block_food[i, j] = shortest_distance(cls, block, Js[j])
 	end

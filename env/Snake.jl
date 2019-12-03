@@ -99,6 +99,12 @@ function Base.isequal(s::Snake, w::Snake)
     return length(s) == length(w)
 end
 
+function cells(state)
+    snakes = deepcopy(state[:snakes])
+    food = deepcopy(state[:food])
+    return cells(state[:height], state[:width], snakes, food)
+end
+
 function cells(r, c)
     cells = Array{Cell, 2}(undef, (r, c))
     for i=1:r, j=1:c
@@ -146,6 +152,7 @@ function gamestate(g::Game)
     return deepcopy((height=r, width=r,
         food=b.food, snakes=b.snakes, done=g.gameover, turn=g.turn))
 end
+
 
 function Game(state::NamedTuple)
     snakes = deepcopy(state[:snakes])
@@ -279,14 +286,10 @@ function move(g::Game, moves)
     for (s, m) in zip(snakes, moves)
         !alive(s) && continue
         health(s, health(s) - 1)
-
-        if canmove(s, m)
-            s.direction = m
-        end
-
+        
+        s.direction = m
         move(board, s)
-
-        if head(s) == nothing
+        if !in_bounds(head(s)..., board)
             # snake hit a wall
             kill!(board, s, :COLLIDED_WITH_A_WALL)
             continue
@@ -388,7 +391,7 @@ function move(b::Board, s::Snake)
     if in_bounds(p..., b)
         push!(s, cells[p...])
     else
-        push!(s, nothing)
+        push!(s.trail, p)
     end
 end
 
@@ -405,7 +408,7 @@ function kill!(board::Board, s::Snake, reason)
     println("Kill: $(id(s)) >> $(reason)")
     cells = board.cells
     for i in collect(s.trail)
-        i == nothing && continue
+        !in_bounds(i..., board)  && continue
         c = snakes(cells[i...])
         !(id(s) in c) && continue
         pop!(c, id(s))

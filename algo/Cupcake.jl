@@ -12,11 +12,11 @@ function findmove(algo::Type{Cupcake}, s, i)
 
 	food = collect(s[:food])
 	I = head(snake)
-	cls = cells(r, c, s[:snakes], food)
+	cls = cells(s)
 
 	dir = directionpipe(s, i, cls, I)
 	health(snake) > SNAKE_MAX_HEALTH*0.75 && (rand() < 0.75) && return rand(dir)
 
-	good_moves = astar(cls, I, collect(s[:food]))
+	good_moves = astar(cls, I, collect(s[:food]), dir)
 	return rand(good_moves)
 end
