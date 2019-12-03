@@ -15,19 +15,24 @@ end
 algoDict = Dict()
 algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
+algoDict["cupcake"] = Cupcake
 
 function whichalgo(req)
-    if !haskey(req, :params)
-        return algoDict["default"]
+    if haskey(req, :params)
+        name = req[:params][:s]
+        if !haskey(algoDict, name)
+            name = "default"
+        end
     end
-    return algoDict[req[:params][:s]]
+
+    return algoDict[name]
 end
 
 function move(req)
     d = JSON.parse(deepcopy(String(req[:data])))
     st = state(d)
     algo = whichalgo(req)
-    move = findmoves(algo, st, length(st[:snakes]))[st[:me]]
+    move = findmoves(algo, st, length(st[:snakes]), st[:me])
     T = Dict((1, 0)=>"down", (-1, 0)=>"up", (0, 1)=>"right", (0, -1)=>"left")
     move = T[move]
     return JSON.json((move=move,))
