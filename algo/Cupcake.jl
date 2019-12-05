@@ -6,13 +6,13 @@ function findmoves(algo::Type{Cupcake}, s, N)
 	return map(i -> findmove(algo, s, i), 1:N)
 end
 
-function notnearestbigsnake(snake, cls, snakeslist)
-	bigsnakes = filter(x -> id(x) != id(snake) && !(x < snake), filter(alive, snakeslist))
+function notnearestsnake(snake, cls, snakeslist)
+	bigsnakes = filter(x -> id(x) != id(snake), filter(alive, snakeslist))
 	return y -> begin 
 		dist = ȳ -> map(x -> 
 			sum(head(x) .- ȳ), 
 		bigsnakes)
-		score = ȳ -> reduce((acc, x) -> acc + 1/x, dist(ȳ), init=0)
+		score = ȳ -> 1/minimum(dist(ȳ))
 
 		s = map(score, y)
 		r = minimum(s)
@@ -35,10 +35,10 @@ function findmove(algo::Type{Cupcake}, s, i)
 		biggercluster(I, clusters, cdict)
 	))(DIRECTIONS)
 
-	if health(snake) > SNAKE_MAX_HEALTH*0.75
+	if health(snake) > SNAKE_MAX_HEALTH*0.95
 		# not food
 		p = flow(
-			notnearestbigsnake(snake, cls, s[:snakes]), 
+			notnearestsnake(snake, cls, s[:snakes]), 
 			choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes])))
 
 		good_moves = astar(cls, I, [tail(snake)], p(dir))
