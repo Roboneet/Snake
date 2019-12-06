@@ -3,7 +3,7 @@
 
 ENGINE_URL=http://localhost:3005
 
-eval engine create -c ~/snake-config.json \
+eval engine create -c ${1:-~/snake-config.json} \
   | jq --raw-output ".ID" \
   | xargs -I {} sh -c \
       "open -a \"Google Chrome\" \

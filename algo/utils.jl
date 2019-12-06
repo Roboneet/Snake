@@ -95,7 +95,7 @@ function willtailmove(cell, cells, snakeslist)
 	# H = head(snakeslist[snake])
 	# nf = nearfood(cells[H...], cells)
 	# return !nf
-	return !fullhealth(snakeslist[snake]) # has eaten ?
+	return length(snake) >=3 && !fullhealth(snakeslist[snake]) # has eaten ?
 end
 
 
@@ -142,6 +142,7 @@ function shortest_distance(cls::AbstractArray{Cell,2},
 end
 
 # higher order function to run a list of functions until the end or until one of it provides an empty output or there is only one element left
+flow(f::Function) = flow((f,))
 flow(fs...) = flow(fs)
 function flow(fs) 
 	function br(f, g) 
@@ -155,6 +156,7 @@ function flow(fs)
 	foldr(br, fs, init=identity)
 end
 choose(f) = y -> filter(f, y)
+through(p, f) = y -> (p ? f(y) : y)
 
 function biggercluster(I, clusters, cdict)
 	return y -> begin
@@ -171,40 +173,40 @@ function biggercluster(I, clusters, cdict)
 	end
 end
 
-function directionpipe(s, i)
+function directionpipe(s, i, t)
 	snake = s[:snakes][i]
 	food = collect(s[:food])
 	I = head(snake)
 	r, c = s[:height], s[:width]
 
 	cls = cells(r, c, s[:snakes], food)
-	directionpipe(s, i, cls, I)
+	directionpipe(s, i, cls, I, t != nothing)
 end
 
-function directionpipe(s, i, cls, I)
+function directionpipe(s, i, cls, I, clusterify=true)
 	snake = s[:snakes][i]
 	clusters, cdict = floodfill(cls)
 	return (flow(choose(x -> in_bounds((I .+ x)..., s[:height], s[:width])),                   
 		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes])),            
 		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),  
-		biggercluster(I, clusters, cdict),
+		through(clusterify, biggercluster(I, clusters, cdict)),
 		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes]))) # may return 0 elements 
 	)(DIRECTIONS)
 end
 
-astar(s, i) = astar(s, i, directionpipe(s, i))
+astar(s, i, t) = astar(s, i, t, directionpipe(s, i))
 
-function astar(s, i, dir)
+function astar(s::NamedTuple, i, t, dir)
 	snake = s[:snakes][i]
-
 	!snake.alive && return 0
-	food = collect(s[:food])
+
 	I = head(snake)
 	cls = cells(s)
-	return astar(cls, I, food, dir)
+	food = t != nothing 
+	return  food ? astar(cls, I, [t], dir) : astar(cls, I, [tail(snake)], dir)
 end
 
-function astar(cls, I, Js, dir)
+function astar(cls::AbstractArray{Cell,2}, I, Js, dir)
 	length(dir) == 1 && return dir
 	isempty(Js) && return dir
 	
@@ -250,7 +252,7 @@ function floodfill!(cells, i, j, z, cnt)
 	return p
 end
 
-function assign(st, N, findmove)
+function assign(st, N)
 	food = collect(st[:food])
 	allsnakes = collect(st[:snakes])
 	cls = cells(st[:height], st[:width], allsnakes, food)
@@ -302,22 +304,13 @@ function assign(st, N, findmove)
 			snake_match[snake] = m[i]
 		end
 	end
-	moves = [(0, 0) for i=1:N]
+	targets = Any[nothing for i=1:N]
 	foreach(x -> begin
 		snake = snakes[x]
-		# @show snake, snake_match[x]
-		if snake_match[x] != nothing
-	    	f = food[snake_match[x]]
-	    	xview = (st..., food=[f],)
-	    else
-	    	t = tail(allsnakes[snake])
-	    	xview = (st..., food=[t],)
-	    end
-
-	    m = findmove(xview, snake)    
-	    moves[snake] = m
+	 	if snake_match[x] != nothing
+	 		targets[snake] = food[snake_match[x]]
+	 	end
 	end, 1:length(snakes))
-	
-	return moves
+	return targets
 end
 
