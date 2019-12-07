@@ -1,5 +1,7 @@
 include("../env/Snake.jl")
 
+using DataStructures
+
 function play(algo, si, N)
 	env = SnakeEnv(si, N)
 	
@@ -75,7 +77,9 @@ function nearsnake(cell, snake, cells, snakeslist, cmp)
 	
 	length(n) == 0 && return false 
 	S = union((snakes.(n))...)
-	pop!(S, id(snake))
+	if id(snake) in S
+		pop!(S, id(snake))
+	end
 	K = filter(x -> cmp(snakeslist[x], snake), S)
 	return !(isempty(K))
 end
@@ -108,37 +112,110 @@ freecell(cell, cells, snakes) = isempty(cell.snakes) ||
 # 	return freecell(cell, cells, snakes)
 # end
 
-function path(cls, I, J, visited, p=[]; head=false)
-	I == J && return true
-	!head && length(snakes(cls[I...])) != 0 && return false
-	visited[I...] == true && return false
-	visited[I...] = true
-	
-	n = indices.(neighbours(cls[I...], cls))
-	length(n) == 0 && return false
-	
-	dist(x) = sum(abs.(J .- x))
-	for ele in sort(n, by=dist)
-		visited[ele...] == true && continue
-		if path(cls, ele, J, visited, p)
-			push!(p, ele)
-			return true
+function connectionset(r, c)
+	connection = Array{Any, 2}(undef, (r, c))
+	for i=1:r, j=1:c
+		@inbounds connection[i, j] = nothing
+	end
+	return connection
+end
+
+# bi-directional a-star search
+function path(cls, I, J; kwargs...)
+	r, c = size(cls)
+	# visited = fill(false, r, c)
+	connection1 = connectionset(r, c)
+	connection2 = connectionset(r, c)
+	p = []
+	@inbounds connection1[I[1], I[2]] = I
+	dist = sum(abs.(I .- J))
+
+	explore1 = PriorityQueue{Tuple{Int,Int},Int}(I=>dist)
+	explore2 = PriorityQueue{Tuple{Int,Int},Int}(J=>dist)
+	haspath = false
+	while !haspath && !isempty(explore1) && !isempty(explore2)
+		g = dequeue!(explore1)
+		N1 = path(cls, g, J, connection1, explore1; kwargs...)
+		M1 = map(x -> connection2[x...] != nothing, N1)
+
+		# the first pivot has to be in the shortest path
+		# Otherwise, there would've been another pivot which we would've reached earlier
+		if any(M1)
+			haspath = true
+			pivot = N1[M1][1]
+			p = collectpath(connection1, connection2, I, J, pivot)
+			break
+		end
+
+		h = dequeue!(explore2)
+		N2 = path(cls, h, I, connection2, explore2; kwargs...)
+		M2 = map(x -> connection1[x...] != nothing, N2)
+		if any(M2)
+			haspath = true
+			pivot = N2[M2][1]
+			p = collectpath(connection1, connection2, I, J, pivot)
+			break
+		end
+
+		if connection1[J...] != nothing
+			haspath = true
+			p = collectpath(connection1, connection2, I, J, J)
+			break	
+		end
+		if connection2[I...] != nothing
+			haspath = true
+			p = collectpath(connection1, connection2, I, J, I)
+			break	
 		end
 	end
 
-	return false
+	return haspath, p
+end
+
+function collectpath(connection1, connection2, I, J, pivot)
+	p = []
+	
+	t = pivot
+	while t != J
+		pushfirst!(p, t)
+		@inbounds t = connection2[t[1], t[2]]
+	end
+	t = pivot
+	while t != I
+		push!(p, t)
+		@inbounds t = connection1[t[1], t[2]]
+	end
+
+	return p
+end
+
+
+function path(cls, I, J, connection, explore=[]; head=false)
+	I == J && return []
+	dist(k) = sum(abs.(J .- k))
+	@inbounds cell = cls[I[1], I[2]]
+
+	n = indices.(neighbours(cell, cls))
+	length(n) == 0 && return
+	
+	N = filter(t -> begin
+	   @inbounds c = connection[t[1], t[2]] 
+	   @inbounds k = cls[t[1], t[2]]
+	   c == nothing && length(snakes(k)) == 0
+	end, n)
+
+	foreach(t -> begin
+			@inbounds connection[t[1], t[2]] = I
+			enqueue!(explore, t=>dist(t))
+	end, N)
+
+	return N
 end
 
 function shortest_distance(cls::AbstractArray{Cell,2}, 
 	block, food; kwargs...)
-	r, c = size(cls)
-	visited = fill(false, r, c)
-	p = []
-	if path(cls, block, food, visited, p; kwargs...)
-		return length(p)
-	else
-		return Inf
-	end
+	haspath, p = path(cls, block, food; kwargs...)
+	return haspath ? length(p) : Inf
 end
 
 # higher order function to run a list of functions until the end or until one of it provides an empty output or there is only one element left

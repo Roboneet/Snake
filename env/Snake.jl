@@ -99,6 +99,13 @@ function Base.isequal(s::Snake, w::Snake)
     return length(s) == length(w)
 end
 
+function Board(state::NamedTuple)
+    snakes = deepcopy(state[:snakes])
+    food = deepcopy(state[:food])
+    c = cells(state[:height], state[:width], snakes, food)
+    return Board(c, snakes, food)
+end
+
 function cells(state)
     snakes = deepcopy(state[:snakes])
     food = deepcopy(state[:food])
@@ -242,6 +249,41 @@ function Base.show(io::IO, b::Board)
 end
 showcells(io, s::NamedTuple) = showcells(io, cells(s[:height], s[:width], s[:snakes], s[:food]))
 showcells(cells) = showcells(stdout, cells)
+
+
+LEGENDS = Dict(
+    :empty => " ",
+    :unoccupied => "_",
+    :food => "O",
+    :head => "%",
+    :tail => "/",
+    :collision => "X",
+    )
+
+cellvalue(io, x...) = print(io, LEGENDS[:empty])
+cellvalue(io, x::Cell) = print(io, x.value)
+function showcell(io, cell)
+    if cell.value != nothing
+        cellvalue(io, cell)
+    elseif unoccupied(cell)
+        print(io, LEGENDS[:unoccupied])
+    elseif hasfood(cell)
+        print(io, LEGENDS[:food])
+    else
+        s = snakes(cell)
+        if length(s) == 1
+            if cell.ishead
+                print(io, LEGENDS[:head])
+            elseif cell.istail
+                print(io, LEGENDS[:tail])
+            else    
+                print(io, collect(s)[1])
+            end
+        else
+            print(io, LEGENDS[:collision])
+        end
+    end
+end
 function showcells(io, cells)
     r, c = size(cells)
     println(io, "-"^(r + 2))
@@ -249,24 +291,7 @@ function showcells(io, cells)
         print(io, "|")
         for j=1:c
             cell = cells[i, j]
-            if unoccupied(cell)
-                print(io, "_")
-            elseif hasfood(cell)
-                print(io, "O")
-            else
-                s = snakes(cell)
-                if length(s) == 1
-                    if cell.ishead
-                        print(io, "%")
-                    elseif cell.istail
-                        print(io, "/")
-                    else    
-                        print(io, collect(s)[1])
-                    end
-                else
-                    print(io, "X")
-                end
-            end
+            showcell(io, cell)
         end
         println(io, "|")
     end
