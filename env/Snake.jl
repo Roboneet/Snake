@@ -56,7 +56,7 @@ function step!(env::SnakeEnv, moves)
     # # down - 3
     # # left - 4
     # move(game, map(x -> DIRECTIONS[x], moves))
-    move(game, moves)
+    step!(game, moves)
     r = map(x -> alive(x) ? 1 : 0, snakes(game))
     return state(env), r
 end
@@ -298,11 +298,27 @@ function showcells(io, cells)
     println(io, "-"^(r + 2))
 end
 
-function move(g::Game, moves)
-
+function step!(g::Game, moves)
     board = g.board
-    snakes = board.snakes
 
+    move(board, moves)
+
+    g.turn += 1
+    if g.turn >= g.foodtime
+        a = length(filter(alive, board.snakes))
+        n = ceil(Int, a/2)
+        board.food = create_food(board.cells, n, board.food)
+        g.foodtime = foodtime(g.turn)
+    end
+
+    g.gameover = done(board)
+    
+
+    return g
+end
+
+function move(board::Board, moves)
+    snakes = board.snakes
     
     food = board.food
     cells = board.cells
@@ -337,19 +353,7 @@ function move(g::Game, moves)
     removefood(board, food)
 
     handlecollisions(board, snakes)
-
-    g.turn += 1
-    if g.turn >= g.foodtime
-        a = length(filter(alive, snakes))
-        n = ceil(Int, a/2)
-        board.food = create_food(cells, n, food)
-        g.foodtime = foodtime(g.turn)
-    end
-
-    g.gameover = done(board)
     markends(board, snakes, true)
-
-    return g
 end
 
 function handlecollisions(board::Board, S)
