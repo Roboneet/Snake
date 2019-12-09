@@ -16,6 +16,7 @@ algoDict = Dict()
 algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
+algoDict["kettle"] = Kettle
 
 function whichalgo(req)
     if haskey(req, :params)

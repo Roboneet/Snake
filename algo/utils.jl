@@ -391,3 +391,62 @@ function assign(st, N)
 	return targets
 end
 
+
+function distancematrix(c, src)
+   r, ci = size(c)
+   m = Array{Any,2}(undef, (r, ci))
+   for i=1:r, j=1:ci
+       m[i, j] = nothing
+   end
+   e = [src]
+   m[src...] = 0.0
+   maxl = Inf
+   while !isempty(e)
+       g = popfirst!(e)
+       N = neighbours(g, r, ci)
+       v = m[g...]
+       for n in N
+           if m[n...] == nothing
+               if hassnake(c[n...])
+                   m[n...] = maxl
+               else
+                   m[n...] = v + 1
+                   push!(e, n)
+               end
+           end
+       end
+   end
+   m[src...] = maxl
+   return m
+end
+
+function partition(snakes, ms)
+   ml = maximum(id.(snakes)) + 1
+   r, c = size(ms[1])
+   M = Array{Any,2}(nothing, (r, c))
+   for i=1:r, j=1:c
+       v = [ms[k][i, j] for k=1:length(snakes)]
+       if any(v .== nothing)
+           M[i, j] = ml
+           continue
+       end
+
+       p, o = findmin(v)
+       if all(v .== Inf)
+           M[i, j] = ml
+       elseif count(v .== p) != 1
+           S = snakes[v .== p]
+           L = length.(S)
+           q, m = findmax(L)
+           if count(L .== q) != 1
+               M[i, j] = ml
+           else
+               M[i, j] = id(S[m])
+           end
+       else
+           M[i, j] = id(snakes[o])
+       end
+   end
+   return M
+end
+
