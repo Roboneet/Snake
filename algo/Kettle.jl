@@ -7,9 +7,10 @@ function findmoves(algo::Type{Kettle}, s, N)
 end
 
 function clusterify(algo::Type{Kettle}, cls, snks)
-	d = map(x -> distancematrix(cls, head(x)), snks)
+	S = filter(alive, snks)
+	d = map(x -> distancematrix(cls, head(x)), S)
 	M, N = size(cls)
-	partitions = partition(snks, d)
+	partitions = partition(S, d)
 	flooded, fdict = floodfill(cls)
 
 	clusters = Array{Any, 2}(undef, (M, N))

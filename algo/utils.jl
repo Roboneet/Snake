@@ -17,6 +17,8 @@ function play(algo, si, N)
 			push!(memory[:moves], moves)
 			
 			step!(env, moves)
+			@show moves, algo
+			@show length.(state(env).snakes)
 			@show state(env)[:turn]
 			display(env)
 		end
@@ -425,17 +427,19 @@ function partition(snakes, ms)
    r, c = size(ms[1])
    M = Array{Any,2}(nothing, (r, c))
    for i=1:r, j=1:c
-       v = [ms[k][i, j] for k=1:length(snakes)]
-       if any(v .== nothing)
+       V = [ms[k][i, j] for k=1:length(snakes)]
+       if all(V .== nothing)
            M[i, j] = ml
            continue
        end
+       v = V[V .!= nothing]
 
        p, o = findmin(v)
+       O = (1:length(snakes))[V .!= nothing]
        if all(v .== Inf)
            M[i, j] = ml
        elseif count(v .== p) != 1
-           S = snakes[v .== p]
+           S = snakes[V .== p]
            L = length.(S)
            q, m = findmax(L)
            if count(L .== q) != 1
@@ -444,7 +448,7 @@ function partition(snakes, ms)
                M[i, j] = id(S[m])
            end
        else
-           M[i, j] = id(snakes[o])
+           M[i, j] = id(snakes[V .== p][1])
        end
    end
    return M
