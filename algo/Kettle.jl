@@ -1,8 +1,9 @@
 struct Kettle <: SafeGreedy end
 
-findmoves(algo::Type{Kettle}, s, N, i) = findmove(algo, s, i, tailchase=false)
+findmove(algo::Type{Kettle}, s, i) = __findmove__(algo, s, i, tailchase=false)
 
-function findmoves(algo::Type{Kettle}, s, N)
+function findmoves(algo::Type{Kettle}, s)
+	N = length(s.snakes)
 	return map(x -> findmove(algo, s, x, tailchase=false), 1:N)
 end
 

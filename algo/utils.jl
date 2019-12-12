@@ -2,34 +2,6 @@ include("../env/Snake.jl")
 
 using DataStructures
 
-function play(algo, si, N)
-	env = SnakeEnv(si, N)
-	
-	display(env)
-
-	memory = (moves=[], states=[])
-	# try 
-		while !done(env)
-			s = state(env)
-			
-			moves = findmoves(algo, s, N)
-			push!(memory[:states], s)
-			push!(memory[:moves], moves)
-			
-			step!(env, moves)
-			@show moves, algo
-			@show length.(state(env).snakes)
-			@show state(env)[:turn]
-			display(env)
-		end
-		push!(memory[:states], state(env))
-	# catch e
-	# 	show(e)
-	# end
-
-	return memory
-end
-
 xy(k) = (k["y"] + 1,k["x"] + 1)
 function state(params::Dict)
     board_p = params["board"]
@@ -331,9 +303,11 @@ function floodfill!(cells, i, j, z, cnt)
 	return p
 end
 
-function assign(st, N)
+function assign(st)
 	food = collect(st[:food])
+
 	allsnakes = collect(st[:snakes])
+	N = length(allsnakes)
 	cls = cells(st[:height], st[:width], allsnakes, food)
 
 	snakes = (1:N)[alive.(allsnakes)]

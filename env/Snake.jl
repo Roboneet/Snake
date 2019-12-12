@@ -47,6 +47,9 @@ done(env::SnakeEnv) = env.game.gameover
 state(env::SnakeEnv) = gamestate(env.game)
 state(env::SnakeEnv, st) = (env.game = Game(st))
 
+function Nsnakes(env::SnakeEnv)
+    return length(snakes(env.game))
+end
 
 function step!(env::SnakeEnv, moves)
     game = env.game
@@ -376,7 +379,7 @@ function handlecollisions(board::Board, S)
         L = deepcopy(snakes(cell))
         pop!(L, id(s))
 
-        peers = S[collect(L)] 
+        peers = filter(x -> id(x) in L, S) 
         
         if any(map(x -> hassnakebody(cell, x), peers))
             # tried to bite another snake

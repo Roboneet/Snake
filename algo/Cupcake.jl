@@ -1,8 +1,7 @@
 struct Cupcake <: AbstractAlgo end
 
-
-findmoves(algo::Type{Cupcake}, s, N, i) = findmove(algo, s, i)
-function findmoves(algo::Type{Cupcake}, s, N)
+function findmoves(algo::Type{Cupcake}, s)
+	N = length(s.snakes)
 	return map(i -> findmove(algo, s, i), 1:N)
 end
 

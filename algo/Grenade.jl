@@ -3,9 +3,10 @@ abstract type SafeGreedy <: AbstractAlgo end
 struct Grenade <: SafeGreedy end
 
 
-findmoves(algo::Type{T}, st, N, i) where T <: SafeGreedy =
- findmove(algo, st, i, t=[assign(st, N)[i]])
-function findmoves(algo::Type{T}, s, N) where T <: SafeGreedy
+findmove(algo::Type{T}, st, i) where T <: SafeGreedy =
+ __findmove__(algo, st, i, t=[assign(st)[i]])
+function findmoves(algo::Type{T}, s) where T <: SafeGreedy
+	N = length(s.snakes)
 	targets = assign(s, N)
 	return map(x -> findmove(algo, s, x, t=[targets[x]]), 1:N)
 end
@@ -18,7 +19,7 @@ function clusterify(algo::Type{T}, cls, snks) where T <: SafeGreedy
 	floodfill(cls)
 end
 
-function findmove(algo::Type{T}, s, i; t=collect(s.food), tailchase=true) where T <: SafeGreedy
+function __findmove__(algo::Type{T}, s, i; t=collect(s.food), tailchase=true) where T <: SafeGreedy
 	snake = s[:snakes][i]
 	!alive(snake) && return (0, 0)
 	
@@ -35,8 +36,8 @@ function findmove(algo::Type{T}, s, i; t=collect(s.food), tailchase=true) where 
 		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])))(DIRECTIONS)
 	# @show :1, dir
 
-	food = reachable(food, map(x -> I .+ x, dir), clusters)
-
+	# food = reachable(food, map(x -> I .+ x, dir), clusters)
+	# @show food
 	if health(snake) < SNAKE_MAX_HEALTH/3
 		
 		if !isempty(food)
