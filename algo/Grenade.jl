@@ -11,7 +11,7 @@ function findmoves(algo::Type{T}, s) where T <: SafeGreedy
 	return map(x -> findmove(algo, s, x, t=[targets[x]]), 1:N)
 end
 
-function reachable(food, dir, clusters)
+function reachable(food::T, dir::T, clusters) where T <: AbstractArray{Tuple{Int,Int},1}
 	return filter(f -> any(map(d -> clusters[d...] == clusters[f...], dir)), food)
 end
 

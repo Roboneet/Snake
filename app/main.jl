@@ -52,9 +52,8 @@ function logger(f, req)
         end
     else
         @error req.method, URI(req.target), res[:status]
-        if haskey(req, :data)
-            @info :data req[:data]
-        end
+        d = String(copy(req[:data]))
+        @info :data d
         if DEBUG
             body!(w, String(deepcopy(res[:body])))
         end

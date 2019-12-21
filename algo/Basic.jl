@@ -5,11 +5,11 @@
 # just move avoiding obstacles
 struct Basic <: AbstractAlgo end
 
-findmoves(algo::Type{T}, s) where T <: AbstractAlgo = map(x -> findmove(algo, s, x), 1:length(s.snakes))
+findmoves(algo::Type{T}, s::SType) where T <: AbstractAlgo = map(x -> findmove(algo, s, x), 1:length(s.snakes))
 
 
-basic(s, i) = (flow(canmove(s, i)...))(DIRECTIONS)
-function findmove(algo::Type{Basic}, s, i)
+basic(s::SType, i::Int) = (flow(canmove(s, i)...))(DIRECTIONS)
+function findmove(algo::Type{Basic}, s::SType, i::Int)
 	rand(basic(s, i))
 end
 
@@ -20,14 +20,14 @@ end
 # Follow spacious clusters on the board
 struct SpaceChase <: AbstractAlgo end
 
-function findmove(algo::Type{SpaceChase}, s, i)
+function findmove(algo::Type{SpaceChase}, s::SType, i::Int)
 	f = flow(canmove(s, i)...,
 		morespace(s, i))
 
 	rand(f(DIRECTIONS))
 end
 
-function morespace(s, i, f=reachableclusters)
+function morespace(s::SType, i::Int, f=reachableclusters)
 	c, d = f(s, i)
 	I = head(s.snakes[i])
 	return y -> begin
@@ -46,14 +46,14 @@ end
 # Chase food
 struct FoodChase <: AbstractAlgo end
 
-function findmove(algo::Type{FoodChase}, s, i)
+function findmove(algo::Type{FoodChase}, s::SType, i::Int)
 	f = flow(canmove(s, i)...,
 		closestfood(s, i))
 
 	rand(f(DIRECTIONS))
 end
 
-function closestfood(s, i)
+function closestfood(s::SType, i::Int)
 	c = collect(s[:food])
 	return y -> astar(cells(s), head(s.snakes[i]), c, y)
 end
@@ -67,17 +67,17 @@ abstract type AbstractTorch end
 
 struct CandleLight{N} <: AbstractTorch end
 
-(c::CandleLight{N})(s, i, fr) where N = lookahead(c, s, i, N, fr)
+(c::CandleLight{N})(s::SType, i::Int, fr::Frame) where N = lookahead(c, s, i, N, fr)
 (c::CandleLight)(args...) = lookahead(c, args...)
 
-function lookahead(::Type{K}, s, i) where K <: AbstractAlgo
+function lookahead(::Type{K}, s::SType, i::Int) where K <: AbstractAlgo
 	fr = Frame(s, nothing)
 	t = torch(K)
 	t(s, i, fr)
 end
 
 # A lookahead algo. Modify lookat() to reduce search space
-function lookahead(T::AbstractTorch, s, i, l, fr)
+function lookahead(T::AbstractTorch, s::SType, i::Int, l::Int, fr::Frame)
 	G = Game(s)
 	(l == 0 || done(G)) && return fr
 	c = lookat(T, s, i)
@@ -94,7 +94,7 @@ function lookahead(T::AbstractTorch, s, i, l, fr)
 	return fr
 end
 
-function lookat(T::AbstractTorch, s, i)
+function lookat(T::AbstractTorch, s::SType, i::Int)
 	N = length(s.snakes)
 	moves = map(j -> basic(s, j), 1:N)
 	m = length.(moves)
@@ -103,7 +103,7 @@ function lookat(T::AbstractTorch, s, i)
 	return [[moves[i][c[j][i]] for i=1:length(moves)] for j=1:length(c)]
 end
 
-function allcombos(m, arr, n)
+function allcombos(m::AbstractArray{Int,1}, arr::T, n::Int) where T <: AbstractVector{<:AbstractVector{Int}}
 	length(m) < n && return arr
 	if length(m) == n
 		return fillcol!(arr, n, m[n], 1)
@@ -114,7 +114,7 @@ function allcombos(m, arr, n)
 	return fillcol!(c, n, M, k)
 end
 
-function fillcol!(arr, n, M, k)
+function fillcol!(arr::T, n::Int, M::Int, k::Int) where T <: AbstractVector{<:AbstractVector{Int}}
 	j = 1
 	while j <= length(arr)
 		for i=1:M
@@ -138,7 +138,7 @@ struct LightSpace{T <: AbstractTorch} <: AbstractAlgo end
 lightspace(N=1) = LightSpace{CandleLight{N}}
 torch(l::Type{LightSpace{T}}) where T = T()
 
-function spacescore(fr, i, f=reachableclusters)
+function spacescore(fr::Frame, i::Int, f=reachableclusters)
 	!alive(fr.state.snakes[i]) && return 0
 	# display(fr)
 	c, d = f(fr.state)
@@ -160,14 +160,14 @@ function spacescore(fr, i, f=reachableclusters)
 	return S
 end
 
-function nempty(c, d, k)
+function nempty(c::AbstractArray{T,2}, d::Dict{T,Int}, k::Tuple{Int,Int}) where T
 	r, ci = size(c)
 	l = c[k...]
 	# @show d
 	r*ci - d[l]
 end
 
-function minmaxreduce(fr, i, f=spacescore)
+function minmaxreduce(fr::Frame, i::Int, f=spacescore)
 	ch = collect(pairs(fr.children))
 	isempty(ch) && return f(fr, i), Dict()
 	# display(fr)
@@ -186,13 +186,13 @@ function minmaxreduce(fr, i, f=spacescore)
 	maxpairs(q)
 end
 
-function maxpairs(q::Dict)
+function maxpairs(q::Dict{Tuple{Int,Int},T}) where T
 	Q = collect(pairs(q))
 	m = maximum(map(x -> x[2], Q))
 	m, filter(x -> x[2] == m, Q)
 end
 
-function spacelook(T, s, i, f=reachableclusters)
+function spacelook(T, s::SType, i::Int, f=reachableclusters)
 	b = basic(s, i)
 	length(b) <= 1 && return b
 	fr = lookahead(T, s, i)
@@ -203,7 +203,7 @@ function spacelook(T, s, i, f=reachableclusters)
 	map(y -> y[1], q)
 end
 
-function findmove(algo::Type{LightSpace{M}}, s, i) where M
+function findmove(algo::Type{LightSpace{M}}, s::SType, i::Int) where M
 	K = spacelook(algo, s, i)
 	f = flow(closestfood(s, i))
 	m = f(K)

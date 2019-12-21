@@ -16,6 +16,9 @@ mutable struct Snake
     death_reason
 end
 
+const SType = NamedTuple{(:height, :width, :food, :snakes, :ns, :turn, :mode),
+    Tuple{Int64,Int64,Array{Tuple{Int,Int},1},Array{Snake,1},Int64,Int64,Symbol}}
+
 function Base.deepcopy_internal(t::Snake, d::IdDict)
     d[t] = Snake(t.id, copy(t.trail), t.health,
         t.alive, t.direction, t.death_reason)
@@ -54,7 +57,7 @@ single_or_multi(n) = n > 1 ? MULTI_PLAYER_MODE : SINGLE_PLAYER_MODE
 SnakeEnv(size::Tuple{Int,Int}, n::Int) =
     SnakeEnv(Game(size, n))
 
-SnakeEnv(st::NamedTuple) = SnakeEnv(Game(st))
+SnakeEnv(st::SType) = SnakeEnv(Game(st))
 
 done(env::SnakeEnv) = done(env.game)
 done(g::Game) = g.mode == MULTI_PLAYER_MODE ? g.ns == 1 : g.ns == 0
@@ -119,7 +122,7 @@ function Base.isequal(s::Snake, w::Snake)
     return length(s) == length(w)
 end
 
-function Board(state::NamedTuple)
+function Board(state::SType)
     snakes = deepcopy.(state[:snakes])
     food = copy(state[:food])
     c = cells(state[:height], state[:width], snakes, food)
@@ -134,7 +137,7 @@ end
 
 function cells(r, c)
     cells = Array{Cell, 2}(undef, (r, c))
-    @inbounds for i=1:r, j=1:c
+    @inbounds for j=1:c, i=1:r
         cells[i, j] = Cell((i, j,))
     end
     return cells
@@ -187,9 +190,6 @@ function gamestate(g::Game)
         food=b.food, snakes=b.snakes, ns=g.ns, turn=g.turn, mode=g.mode)
 end
 
-const SType = NamedTuple{(:height, :width, :food, :snakes, :ns, :turn, :mode),
-    Tuple{Int64,Int64,Array{Any,1},Array{Snake,1},Int64,Int64,Symbol}}
-
 # peak performance...
 function copystate(st::SType)
     return (height=st.height, width=st.width,
@@ -197,7 +197,7 @@ function copystate(st::SType)
         ns=st.ns, turn=st.turn, mode=st.mode)
 end
 
-function Game(state::NamedTuple)
+function Game(state::SType)
     snakes = deepcopy.(state[:snakes])
     food = copy(state[:food])
     c = cells(state[:height], state[:width], snakes, food)
@@ -279,7 +279,7 @@ function initial_positions(snakes::AbstractArray{Snake}, cells)
     end
 end
 
-function create_food(cells, N, foodcells=[])
+function create_food(cells, N, foodcells=Tuple{Int,Int}[])
     pick_cells(cells, N) do cell, i
         food!(cell)
         push!(foodcells, indices(cell))
@@ -293,7 +293,7 @@ function Base.show(io::IO, b::Board)
     cells = b.cells
     showcells(io, cells)
 end
-showcells(io, s::NamedTuple) = showcells(io, cells(s[:height], s[:width], s[:snakes], s[:food]))
+showcells(io, s::SType) = showcells(io, cells(s[:height], s[:width], s[:snakes], s[:food]))
 showcells(cells) = showcells(stdout, cells)
 
 
