@@ -3,11 +3,11 @@ include("../env/Snake.jl")
 using DataStructures
 
 xy(k) = (k["y"] + 1,k["x"] + 1)
-function state(params::Dict)
+function extract(params::Dict)
     board_p = params["board"]
     height = board_p["height"]
     width = board_p["width"]
-    food = Set(xy.(board_p["food"]))
+    food = Array{Any,1}(xy.(board_p["food"]))
     snakes = Snake[]
     me = 1
     for i=1:length(board_p["snakes"])
@@ -16,7 +16,7 @@ function state(params::Dict)
             me = i
         end
         trail = reverse(collect(xy.(u["body"])))
-        trail = map(p -> in_bounds(p..., height, width) ? 
+        trail = map(p -> in_bounds(p..., height, width) ?
                     p : nothing, trail)
         if length(trail) > 1
             direction = trail[end] .- trail[end - 1]
@@ -26,13 +26,13 @@ function state(params::Dict)
         push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
     end
     return (height=height, width=width, food=food,
-        snakes=snakes, done=false, turn=params["turn"], me=me)
+        snakes=snakes, ns=length(snakes), turn=params["turn"], mode=MULTI_PLAYER_MODE), me
 end
 
 
 # prefer moves that could eliminate competition
 # avoid ones that could eliminate the snake
-# function snake_eye(state, moves, i) 
+# function snake_eye(state, moves, i)
 # 	snakes = state[:snakes]
 # 	snake = snakes[i]
 # 	v = map(x -> sum(map(y -> begin
@@ -48,11 +48,11 @@ end
 
 function nearsnake(cell, snake, cells, snakeslist, cmp)
 	n = filter(x -> x.ishead, neighbours(cell, cells))
-	
-	length(n) == 0 && return false 
+
+	length(n) == 0 && return false
 	S = union((snakes.(n))...)
 	if id(snake) in S
-		pop!(S, id(snake))
+		S = S[S .!= id(snake)]
 	end
 	K = filter(x -> cmp(snakeslist[x], snake), S)
 	return !(isempty(K))
@@ -69,11 +69,11 @@ fullhealth(snake) = (health(snake) == SNAKE_MAX_HEALTH)
 function willtailmove(cell, cells, snakeslist)
 	isempty(snakes(cell)) && return true # this case doesn't happen though
 	# is there an next state where it won't (very pessimistic)
-	snake = collect(snakes(cell))[1]
+	snake = snakeslist[collect(snakes(cell))[1]]
 	# H = head(snakeslist[snake])
 	# nf = nearfood(cells[H...], cells)
 	# return !nf
-	return length(snake) >=3 && !fullhealth(snakeslist[snake]) # has eaten ?
+	return length(snake) >=3 && !fullhealth(snake) # has eaten ?
 end
 
 
@@ -82,7 +82,7 @@ freecell(cell, cells, snakes) = isempty(cell.snakes) ||
 
 # function issafe(cell, snake, cells, snakes) # is the cell safe to take?
 # 	nearbigsnake(cell, snake, cells, snakes) && return false
-	
+
 # 	return freecell(cell, cells, snakes)
 # end
 
@@ -134,12 +134,12 @@ function path(cls, I, J; kwargs...)
 		if connection1[J...] != nothing
 			haspath = true
 			p = collectpath(connection1, connection2, I, J, J)
-			break	
+			break
 		end
 		if connection2[I...] != nothing
 			haspath = true
 			p = collectpath(connection1, connection2, I, J, I)
-			break	
+			break
 		end
 	end
 
@@ -148,7 +148,7 @@ end
 
 function collectpath(connection1, connection2, I, J, pivot)
 	p = []
-	
+
 	t = pivot
 	while t != J
 		pushfirst!(p, t)
@@ -171,9 +171,9 @@ function path(cls, I, J, connection, explore=[]; head=false)
 
 	n = indices.(neighbours(cell, cls))
 	length(n) == 0 && return
-	
+
 	N = filter(t -> begin
-	   @inbounds c = connection[t[1], t[2]] 
+	   @inbounds c = connection[t[1], t[2]]
 	   @inbounds k = cls[t[1], t[2]]
 	   c == nothing && length(snakes(k)) == 0
 	end, n)
@@ -186,7 +186,7 @@ function path(cls, I, J, connection, explore=[]; head=false)
 	return N
 end
 
-function shortest_distance(cls::AbstractArray{Cell,2}, 
+function shortest_distance(cls::AbstractArray{Cell,2},
 	block, food; kwargs...)
 	haspath, p = path(cls, block, food; kwargs...)
 	return haspath ? length(p) : Inf
@@ -195,8 +195,8 @@ end
 # higher order function to run a list of functions until the end or until one of it provides an empty output or there is only one element left
 flow(f::Function) = flow((f,))
 flow(fs...) = flow(fs)
-function flow(fs) 
-	function br(f, g) 
+function flow(fs)
+	function br(f, g)
 		return x -> begin
 		    l = f(x)
 		    isempty(l) && return x
@@ -214,12 +214,12 @@ function biggercluster(I, clusters, cdict)
 	    K = map(x -> clusters[(I .+ x)...], y)
 	    l = map(i -> K[i] != 0 ? cdict[K[i]] : begin
 	    	L = (I .+ y[i])
-	    	s = maximum(map(x -> clusters[x...], 
+	    	s = maximum(map(x -> clusters[x...],
 	    		neighbours(L, size(clusters)...)))
 	    	return s
 		end, 1:length(K))
 		M = maximum(l)
-		return map(x -> x[1], 
+		return map(x -> x[1],
 			filter(x -> x[2] == M, collect(zip(y, l))))
 	end
 end
@@ -234,14 +234,25 @@ function directionpipe(s, i, t)
 	directionpipe(s, i, cls, I, t != nothing)
 end
 
+function canmove(s::NamedTuple, i, I, cls)
+	!alive(s.snakes[i]) && return ((y) -> [(0, 0)],)
+	return choose(x -> in_bounds((I .+ x)..., s[:height], s[:width])),
+		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes]))
+end
+
+function canmove(s::NamedTuple, i)
+	I = head(s[:snakes][i])
+	cls = cells(s)
+	return canmove(s, i, I, cls)
+end
+
 function directionpipe(s, i, cls, I, clusterify=true)
 	snake = s[:snakes][i]
 	clusters, cdict = floodfill(cls)
-	return (flow(choose(x -> in_bounds((I .+ x)..., s[:height], s[:width])),                   
-		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes])),            
-		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),  
+	return (flow(canmove(s, i, I, cls)...,
+		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),
 		through(clusterify, biggercluster(I, clusters, cdict)),
-		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes]))) # may return 0 elements 
+		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes]))) # may return 0 elements
 	)(DIRECTIONS)
 end
 
@@ -253,24 +264,26 @@ function astar(s::NamedTuple, i, t, dir)
 
 	I = head(snake)
 	cls = cells(s)
-	food = t != nothing 
+	food = t != nothing
 	return  food ? astar(cls, I, [t], dir) : astar(cls, I, [tail(snake)], dir)
 end
 
 function astar(cls::AbstractArray{Cell,2}, I, Js, dir)
 	length(dir) == 1 && return dir
 	isempty(Js) && return dir
-	
+
 	block_food = zeros(length(dir), length(Js))
 	for i=1:length(dir), j=1:length(Js)
 		block = I .+ dir[i]
 		block_food[i, j] = shortest_distance(cls, block, Js[j])
 	end
-	
+
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
-	return map(x -> dir[x[1]], good_moves)
+	return unique(map(x -> dir[x[1]], good_moves))
 end
+
+floodfill(s::NamedTuple, i=nothing) = floodfill(cells(s))
 
 function floodfill(cells)
 	r, c = size(cells)
@@ -289,16 +302,26 @@ function floodfill(cells)
 	return z, pdict
 end
 
-function floodfill!(cells, i, j, z, cnt)
-	cell = cells[i, j]
-	hassnake(cell) && return 0
-	z[i, j] = cnt
-	p = 1
-	ns = collect(neighbours(cell, cells))
-	for n in ns
-		k, l = indices(n)
-		z[k, l] != 0 && continue
-		p += floodfill!(cells, k, l, z, cnt)
+function floodfill!(cells, I, J, z, cnt)
+	exp = [(I, J)]
+	z[I, J] = cnt
+	p = 0
+	r, c = size(cells)
+	while !isempty(exp)
+		p += 1
+		i, j = pop!(exp)
+
+
+		ns = neighbours((i, j), r, c)
+
+		for n in ns
+			k, l = n
+			hassnake(cells[k, l]) && continue
+			z[k, l] != 0 && continue
+
+			z[k, l] = cnt
+			pushfirst!(exp, (k, l))
+		end
 	end
 	return p
 end
@@ -323,17 +346,17 @@ function assign(st)
 	snake_matches = [[] for i=1:length(snakes)]
 	snake_match = Any[nothing for i=1:length(snakes)]
 
-	
+
 	while !(isempty(foodset)) && !(isempty(snakeset))
 		f = collect(foodset)
 		s = collect(snakeset)
 
 		val, indices = findmin(food_snake[f, s], dims=2)
-		
+
 		val == Inf && break
 		for i=1:length(indices)
 			I = indices[i]
-			if val[i] == Inf 
+			if val[i] == Inf
 				pop!(foodset, f[I[1]])
 				continue
 			end
@@ -341,12 +364,12 @@ function assign(st)
 			push!(snake_matches[snake], f[I[1]])
 		end
 		for snake in s
-			
+
 			m = snake_matches[snake]
 			length(m) == 0 && continue
 			pop!(snakeset, snake)
 			if length(m) == 1
-				
+
 				pop!(foodset, m[1])
 				snake_match[snake] = m[1]
 				continue
@@ -367,64 +390,142 @@ function assign(st)
 	return targets
 end
 
+# struct Tailer # :D, an error prone approach to make things better sometimes
+# 	k
+# end
 
-function distancematrix(c, src)
-   r, ci = size(c)
-   m = Array{Any,2}(undef, (r, ci))
-   for i=1:r, j=1:ci
-       m[i, j] = nothing
-   end
-   e = [src]
-   m[src...] = 0.0
-   maxl = Inf
-   while !isempty(e)
-       g = popfirst!(e)
-       N = neighbours(g, r, ci)
-       v = m[g...]
-       for n in N
-           if m[n...] == nothing
-               if hassnake(c[n...])
-                   m[n...] = maxl
-               else
-                   m[n...] = v + 1
-                   push!(e, n)
-               end
-           end
-       end
-   end
-   m[src...] = maxl
-   return m
+# reach(t::Tailer, n) = t.k <= n # reachable using a path of length n
+
+function matrix(c, S, followtails=true)
+	r, ci = size(c)
+	m = Array{Any,2}(undef, (r, ci))
+	for i=1:r, j=1:ci
+		m[i, j] = nothing
+	end
+	# if followtails
+	# 	foreach(S) do x
+	# 		t = x.trail
+	# 		for i=1:length(t)
+	# 			m[t[i]...] = Tailer(i)
+	# 		end
+	# 	end
+	# end
+	return m
+end
+
+function distancematrix(c, src::T, m, maxsteps=SNAKE_MAX_HEALTH) where T
+	r, ci = size(c)
+	q = Queue{T}()
+	enqueue!(q, src)
+	@inbounds m[src...] = 0.0
+	maxl = Inf
+	@inbounds while !isempty(q)
+		g = dequeue!(q)
+		m[g...] >= maxsteps && continue
+		N = neighbours(g, r, ci)
+		v = m[g...] + 1
+		for n in N
+			if m[n...] == nothing
+				if hassnake(c[n...])
+					m[n...] = maxl
+				else
+					m[n...] = v
+					enqueue!(q, n)
+				end
+			# elseif isa(m[n...], Tailer)
+			# 	if reach(m[n...], v)
+			# 		m[n...] = v
+			# 		push!(e, n)
+			# 	end
+			end
+		end
+	end
+	@inbounds m[src...] = maxl
+	# for i=1:r, j=1:ci
+	# 	if isa(m[i, j], Tailer)
+	# 		m[i, j] = maxl
+	# 	end
+	# end
+	return m
 end
 
 function partition(snakes, ms)
    ml = maximum(id.(snakes)) + 1
+   length(ms) < 1 && error() # AaAaaaaaah
    r, c = size(ms[1])
-   M = Array{Any,2}(nothing, (r, c))
-   for i=1:r, j=1:c
-       V = [ms[k][i, j] for k=1:length(snakes)]
-       if all(V .== nothing)
-           M[i, j] = ml
-           continue
-       end
-       v = V[V .!= nothing]
+   M = fill(ml, (r, c))
+   @inbounds for i=1:r, j=1:c
+       v = r*c + 1
+       for k=1:length(snakes)
+       	o = ms[k][i, j]
+       	o == nothing && continue
+       	# @show k, o, v
+       	if o < v
+       		M[i, j] = k
+       		v = o
+       	elseif o == v
+       		if length(snakes[k]) > length(snakes[M[i, j]])
+       			M[i, j] = k
+       			v = o
+       		end
+       	end
 
-       p, o = findmin(v)
-       O = (1:length(snakes))[V .!= nothing]
-       if all(v .== Inf)
-           M[i, j] = ml
-       elseif count(v .== p) != 1
-           S = snakes[V .== p]
-           L = length.(S)
-           q, m = findmax(L)
-           if count(L .== q) != 1
-               M[i, j] = ml
-           else
-               M[i, j] = id(S[m])
-           end
-       else
-           M[i, j] = id(snakes[V .== p][1])
        end
    end
    return M
 end
 
+
+function reachableclusters(s::NamedTuple, i=nothing)
+	cls = cells(s)
+	return reachableclusters(cls, s.snakes)
+end
+
+function reachableclusters(cls, snks)
+	S = filter(alive, snks)
+	length(S) == 0 && return zeros(size(cls)), Dict()
+	init = matrix(cls, S)
+	l = length(S)
+	d = Array{typeof(init),1}(undef, l)
+	@inbounds for i=1:l
+		x = S[i]
+		d[i] = distancematrix(cls, head(x), copy(init), health(x))
+	end
+	M, N = size(cls)
+	partitions = partition(S, d)
+	flooded, fdict = floodfill(cls)
+
+	clusters = Array{Any, 2}(undef, (M, N))
+
+	u = Dict()
+
+	cnt = 1
+	@inbounds for i=1:M, j=1:N
+		if hassnake(cls[i, j])
+			clusters[i, j] = 0
+		else
+			p = partitions[i, j]
+			if !haskey(u, p)
+				u[p] = Dict()
+			end
+			f = flooded[i, j]
+			if !haskey(u[p], f)
+				u[p][f] = cnt
+				cnt += 1
+			end
+			clusters[i, j] = u[p][f]
+		end
+	end
+
+	cdict = Dict()
+
+	@inbounds for i=1:M, j=1:N
+		c = clusters[i, j]
+		if !haskey(cdict, c)
+			cdict[c] = 0
+		end
+
+		cdict[c] += 1
+	end
+	return clusters, cdict
+end

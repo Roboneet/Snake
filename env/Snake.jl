@@ -4,6 +4,8 @@ const DOWN_DIR = (1, 0)
 const LEFT_DIR = (0, -1)
 const RIGHT_DIR = (0, 1)
 const DIRECTIONS = [UP_DIR, RIGHT_DIR, DOWN_DIR, LEFT_DIR]
+const SINGLE_PLAYER_MODE = :SINGLE
+const MULTI_PLAYER_MODE = :MULTI
 
 mutable struct Snake
     id::Int
@@ -14,10 +16,15 @@ mutable struct Snake
     death_reason
 end
 
+function Base.deepcopy_internal(t::Snake, d::IdDict)
+    d[t] = Snake(t.id, copy(t.trail), t.health,
+        t.alive, t.direction, t.death_reason)
+end
+
 mutable struct Cell
     indices::Tuple{Int,Int}
     food::Bool
-    snakes::BitSet # snakes (indices) occupying the cell /
+    snakes # snakes (indices) occupying the cell /
                      # colliding at the cell
     ishead
     istail
@@ -34,26 +41,35 @@ mutable struct Game
     board::Board
     turn
     foodtime
-    gameover
+    ns
+    mode::Symbol
 end
 
 mutable struct SnakeEnv
-    game
+    game::Game
 end
 
-SnakeEnv(size, n) = SnakeEnv(Game(size, n))
+single_or_multi(n) = n > 1 ? MULTI_PLAYER_MODE : SINGLE_PLAYER_MODE
 
-done(env::SnakeEnv) = env.game.gameover
+SnakeEnv(size::Tuple{Int,Int}, n::Int) =
+    SnakeEnv(Game(size, n))
+
+SnakeEnv(st::NamedTuple) = SnakeEnv(Game(st))
+
+done(env::SnakeEnv) = done(env.game)
+done(g::Game) = g.mode == MULTI_PLAYER_MODE ? g.ns == 1 : g.ns == 0
+
 state(env::SnakeEnv) = gamestate(env.game)
 state(env::SnakeEnv, st) = (env.game = Game(st))
 
-function Nsnakes(env::SnakeEnv)
-    return length(snakes(env.game))
+Nsnakes(env::SnakeEnv) = Nsnakes(env.game)
+function Nsnakes(g::Game)
+    return length(snakes(g))
 end
 
 function step!(env::SnakeEnv, moves)
     game = env.game
-    # # move 
+    # # move
     # # up - 1
     # # right - 2
     # # down - 3
@@ -65,8 +81,9 @@ function step!(env::SnakeEnv, moves)
 end
 
 function reset!(env::SnakeEnv)
-    st = gamestate(env)
-    env.game = Game((st[:height], st[:width],), length(snakes(env)))
+    g = env.game
+    st = gamestate(g)
+    env.game = Game((st[:height], st[:width],), length(snakes(g)))
     return env
 end
 
@@ -89,7 +106,7 @@ alive(s::Snake) = s.alive
 health(s::Snake) = s.health
 health(s::Snake, i) = (s.health = i)
 
-Cell(indices) = Cell(indices, false, BitSet(), false, false, nothing)
+Cell(indices) = Cell(indices, false, [], false, false, nothing)
 Snake(i) = Snake(i, [], SNAKE_MAX_HEALTH, true, nothing, nothing)
 foodtime(t) = t + rand(9:12)
 Board() = Board((8, 8))
@@ -103,21 +120,21 @@ function Base.isequal(s::Snake, w::Snake)
 end
 
 function Board(state::NamedTuple)
-    snakes = deepcopy(state[:snakes])
-    food = deepcopy(state[:food])
+    snakes = deepcopy.(state[:snakes])
+    food = copy(state[:food])
     c = cells(state[:height], state[:width], snakes, food)
     return Board(c, snakes, food)
 end
 
 function cells(state)
-    snakes = deepcopy(state[:snakes])
-    food = deepcopy(state[:food])
+    snakes = deepcopy.(state[:snakes])
+    food = copy(state[:food])
     return cells(state[:height], state[:width], snakes, food)
 end
 
 function cells(r, c)
     cells = Array{Cell, 2}(undef, (r, c))
-    for i=1:r, j=1:c
+    @inbounds for i=1:r, j=1:c
         cells[i, j] = Cell((i, j,))
     end
     return cells
@@ -125,17 +142,22 @@ end
 
 function cells(r, c, S, food)
     cls = cells(r, c)
-    for snake in S
+    @inbounds for j=1:length(S)
+        snake = S[j]
         !snake.alive && continue
         for i in snake.trail
             cell = cls[i...]
-            push!(snakes(cell), id(snake))
+            if !in(id(snake), snakes(cell))
+                push!(snakes(cell), id(snake))
+            end
         end
     end
-    for i in food
-        food!(cls[i...])
+
+    @inbounds for i=1:length(food)
+        x, y = food[i]
+        food!(cls[x, y])
     end
-    
+
     markends(cls, S, true)
     return cls
 end
@@ -144,7 +166,7 @@ end
 function Board(size, n)
     c = cells(size...)
     snakes = Array{Snake,1}(undef, n)
-    for i=1:n
+    @inbounds for i=1:n
         snakes[i] = Snake(i)
     end
 
@@ -154,22 +176,33 @@ end
 
 done(b::Board) = (length(filter(alive, b.snakes)) <= 1)
 Game(size, n) = Game(Board(size, n))
-Game(b::Board, t=1) = Game(b, t, foodtime(t), done(b))
+function Game(b::Board, t=1, mode=single_or_multi(length(b.snakes)))
+    Game(b, t, foodtime(t), count(alive.(b.snakes)), mode)
+end
 
 function gamestate(g::Game)
     b = g.board
     r, c = size(b.cells)
-    return deepcopy((height=r, width=r,
-        food=b.food, snakes=b.snakes, done=g.gameover, turn=g.turn))
+    return (height=r, width=r,
+        food=b.food, snakes=b.snakes, ns=g.ns, turn=g.turn, mode=g.mode)
 end
 
+const SType = NamedTuple{(:height, :width, :food, :snakes, :ns, :turn, :mode),
+    Tuple{Int64,Int64,Array{Any,1},Array{Snake,1},Int64,Int64,Symbol}}
+
+# peak performance...
+function copystate(st::SType)
+    return (height=st.height, width=st.width,
+        food=copy(st.food), snakes=deepcopy.(st.snakes),
+        ns=st.ns, turn=st.turn, mode=st.mode)
+end
 
 function Game(state::NamedTuple)
-    snakes = deepcopy(state[:snakes])
-    food = deepcopy(state[:food])
+    snakes = deepcopy.(state[:snakes])
+    food = copy(state[:food])
     c = cells(state[:height], state[:width], snakes, food)
     b = Board(c, snakes, food)
-    return Game(b, state[:turn])
+    return Game(b, state[:turn], state[:mode])
 end
 
 function pick_cell!(cells::Set{Cell})
@@ -184,7 +217,13 @@ in_bounds(i, j, r, c) = (1 <= i <= r) && (1 <= j <= c)
 function neighbours(cell::Cell, cells::AbstractArray{Cell, 2})
     r, c = size(cells)
     i, j = cell.indices
-    return map(x -> cells[x...], neighbours(cell.indices, r, c))
+    n = neighbours(cell.indices, r, c)
+    nc = Array{Cell,1}(undef, length(n))
+    @inbounds for i=1:length(n)
+        x, y = n[i]
+        nc[i] = cells[x, y]
+    end
+    return nc
 end
 
 function neighbours(cell::Tuple{Int,Int}, r, c)
@@ -200,7 +239,9 @@ function neighbours(cell::Tuple{Int,Int}, r, c)
 end
 
 function Base.push!(snake::Snake, c::Cell)
-    push!(snakes(c), snake.id)
+    if !(id(snake) in snakes(c))
+        push!(snakes(c), snake.id)
+    end
     push!(snake.trail, indices(c))
 end
 
@@ -212,9 +253,11 @@ function removetail!(b::Board, snake::Snake)
     t = tail(snake)
     popfirst!(snake.trail)
     if !all(head(snake) .== t)
-        pop!(snakes(b.cells[t...]), id(snake))
+        x, y = t
+        cell = b.cells[x, y]
+        cell.snakes = filter(x -> x != id(snake), cell.snakes)
     end
-    
+
 end
 
 function pick_cells(f, cells, n, delete_neighbours=false)
@@ -232,11 +275,11 @@ end
 
 function initial_positions(snakes::AbstractArray{Snake}, cells)
     pick_cells(cells, length(snakes), true) do cell, i
-        push!(snakes[i], cell)
+        @inbounds push!(snakes[i], cell)
     end
 end
 
-function create_food(cells, N, foodcells = Set())
+function create_food(cells, N, foodcells=[])
     pick_cells(cells, N) do cell, i
         food!(cell)
         push!(foodcells, indices(cell))
@@ -279,7 +322,7 @@ function showcell(io, cell)
                 print(io, LEGENDS[:head])
             elseif cell.istail
                 print(io, LEGENDS[:tail])
-            else    
+            else
                 print(io, collect(s)[1])
             end
         else
@@ -307,22 +350,27 @@ function step!(g::Game, moves)
     move(board, moves)
 
     g.turn += 1
-    if g.turn >= g.foodtime
-        a = length(filter(alive, board.snakes))
-        n = ceil(Int, a/2)
-        board.food = create_food(board.cells, n, board.food)
-        g.foodtime = foodtime(g.turn)
+    if g.mode == MULTI_PLAYER_MODE
+        if g.turn >= g.foodtime
+            a = length(filter(alive, board.snakes))
+            n = ceil(Int, a/2)
+            board.food = create_food(board.cells, n, board.food)
+            g.foodtime = foodtime(g.turn)
+        end
+    else
+        if isempty(board.food)
+            board.food = create_food(board.cells, 1, board.food)
+        end
     end
 
-    g.gameover = done(board)
-    
+    g.ns = count(alive.(snakes(g)))
 
     return g
 end
 
 function move(board::Board, moves)
     snakes = board.snakes
-    
+
     food = board.food
     cells = board.cells
 
@@ -330,7 +378,7 @@ function move(board::Board, moves)
     for (s, m) in zip(snakes, moves)
         !alive(s) && continue
         health(s, health(s) - 1)
-        
+
         s.direction = m
         move(board, s)
         if !in_bounds(head(s)..., board)
@@ -353,7 +401,7 @@ function move(board::Board, moves)
             end
         end
     end
-    removefood(board, food)
+    board.food = removefood(board, food)
 
     handlecollisions(board, snakes)
     markends(board, snakes, true)
@@ -362,7 +410,7 @@ end
 function handlecollisions(board::Board, S)
     cells = board.cells
     eachsnake(S) do s
-        cell = cells[head(s)...]
+        @inbounds cell = cells[head(s)...]
 
         if length(snakes(cell)) == 1
             H = hassnakebody(cell, s)
@@ -374,20 +422,19 @@ function handlecollisions(board::Board, S)
     end
 
     eachsnake(S) do s
-        cell = cells[head(s)...]
+        @inbounds cell = cells[head(s)...]
 
-        L = deepcopy(snakes(cell))
-        pop!(L, id(s))
+        L = filter(x -> x != id(s), snakes(cell))
+        length(L) == 0 && return
 
-        peers = filter(x -> id(x) in L, S) 
-        
+        peers = filter(x -> !in(id(x), L), S)
         if any(map(x -> hassnakebody(cell, x), peers))
             # tried to bite another snake
             kill!(board, s, :BIT_ANOTHER_SNAKE)
             return
         end
 
-        if any(map(x -> s < x, peers)) # it dies 
+        if any(map(x -> s < x, peers)) # it dies
             kill!(board, s, :HEAD_COLLISION)
             return
         end
@@ -396,20 +443,21 @@ function handlecollisions(board::Board, S)
             eachsnake(peers) do x
                 kill!(board, x, :HEAD_COLLISION)
             end
-            return            
+            return
         end
     end
 end
 
 function removefood(board, food)
-    fc = collect(food)
-    for f in fc
-        cell = board.cells[f...]
+    fc = Set(food)
+    for f in food
+        @inbounds cell = board.cells[f...]
         if length(snakes(cell)) != 0
             eat!(cell)
-            pop!(food, f)
+            pop!(fc, f)
         end
     end
+    return collect(fc)
 end
 
 
@@ -421,29 +469,32 @@ function move(b::Board, s::Snake)
     cells = b.cells
     p = head(s) .+ d
     if in_bounds(p..., b)
-        push!(s, cells[p...])
+        @inbounds push!(s, cells[p...])
     else
         push!(s.trail, p)
     end
 end
 
-caneat(b::Board, snake) = hasfood(b.cells[head(snake)...])
+caneat(b::Board, snake) = @inbounds hasfood(b.cells[head(snake)...])
 
 # snake cannot move back
-function canmove(s::Snake, m)
-    return (s.direction == nothing) ||
-     !all(s.direction .== -1 .* m)
-end
+# function canmove(s::Snake, m)
+#     return (s.direction == nothing) ||
+#      !all(s.direction .== -1 .* m)
+# end
 
 function kill!(board::Board, s::Snake, reason)
     !s.alive && return
-    println("Kill: $(id(s)) >> $(reason)")
+    # println("Kill: $(id(s)) >> $(reason)")
     cells = board.cells
-    for i in collect(s.trail)
-        !in_bounds(i..., board)  && continue
-        c = snakes(cells[i...])
+    t = s.trail
+    for i=1:length(t)
+        @inbounds x, y = t[i]
+        !in_bounds(x, y, board)  && continue
+        @inbounds cell = cells[x, y]
+        c = snakes(cell)
         !(id(s) in c) && continue
-        pop!(c, id(s))
+        cell.snakes = c[c .!= id(s)]
     end
 
     s.alive = false
@@ -457,7 +508,9 @@ id(s::Snake) = s.id
 
 
 function eachsnake(f, snakes::AbstractArray{Snake,1})
-    for snake in snakes
+    l = length(snakes)
+    for i=1:l
+        @inbounds snake = snakes[i]
         !alive(snake) && continue
         f(snake)
     end
@@ -467,7 +520,9 @@ markends(b::Board, snakes, v=true) = markends(b.cells, snakes, v)
 
 function markends(cells, S, v=true)
     eachsnake(S) do snake
-        cells[tail(snake)...].istail = v
-        cells[head(snake)...].ishead = v
+        tx, ty = tail(snake)
+        hx, hy = head(snake)
+        @inbounds cells[tx, ty].istail = v
+        @inbounds cells[hx, hy].ishead = v
     end
 end

@@ -29,15 +29,17 @@ function whichalgo(req)
     return algoDict[name]
 end
 
-function move(req)
-    d = JSON.parse(deepcopy(String(req[:data])))
-    st = state(d)
-    algo = whichalgo(req)
-    move = findmove(algo, st, st[:me])
+function move(req, wa=whichalgo)
+    d = JSON.parse(String(req[:data]))
+    st, me = extract(d)
+    algo = wa(req)
+    move = findmove(algo, st, me)
     T = Dict((1, 0)=>"down", (-1, 0)=>"up", (0, 1)=>"right", (0, -1)=>"left")
     move = T[move]
     return JSON.json((move=move,))
 end
+
+test_lightspace(req) = move(req, (r) -> lightspace(parse(Int, r[:params][:n])))
 
 function logger(f, req)
     if DEBUG
@@ -58,7 +60,7 @@ function logger(f, req)
 end
 
 function foo(req)
-    st = state(JSON.parse(String(deepcopy(req[:data]))))
+    st, me = extract(JSON.parse(String(req[:data])))
     io = IOBuffer()
     println(io, st[:turn])
     showcells(io, st)
@@ -66,15 +68,16 @@ function foo(req)
     return "ok"
 end
 
-@app sankeserver = ( 
+@app sankeserver = (
    logger,
    Mux.defaults,
    page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
    page("/:s/start", respond("{color:#f00}")),
    page("/:s/move", move),
    page("/:s/ping", respond("ok")),
-   page("/:s/end", foo), 
-   Mux.notfound()) 
+   page("/:s/end", foo),
+   page("/test/lightspace/:n/move", test_lightspace),
+   Mux.notfound())
 
 
 using Sockets

@@ -7,6 +7,8 @@ end
 
 function notnearestsnake(snake, cls, snakeslist)
 	bigsnakes = filter(x -> id(x) != id(snake), filter(alive, snakeslist))
+	length(bigsnakes) == 0 && return identity
+	
 	return y -> begin 
 		dist = ȳ -> map(x -> 
 			sum(head(x) .- ȳ), 
@@ -28,8 +30,7 @@ function findmove(algo::Type{Cupcake}, s, i)
 	cls = cells(s)
 
 	clusters, cdict = floodfill(cls)
-	dir = (flow(choose(x -> in_bounds((I .+ x)..., s[:height], s[:width])),                   
-		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes])),            
+	dir = (flow(canmove(s, i, I, cls)...,
 		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),  
 		biggercluster(I, clusters, cdict)
 	))(DIRECTIONS)
