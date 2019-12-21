@@ -46,7 +46,7 @@ function logger(f, req)
         @info req.method, URI(req.target)
     end
     
-    d = String(copy(req.body))
+    # d = String(copy(req.body))
 
     res = f(req)
     if isa(res, HTTP.Response)
@@ -56,7 +56,7 @@ function logger(f, req)
     else
         @error req.method, URI(req.target), res[:status]
         
-        @info :data d
+        # @info :data d
         if DEBUG
             body!(w, String(deepcopy(res[:body])))
         end
