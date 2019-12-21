@@ -30,7 +30,7 @@ function whichalgo(req)
 end
 
 function move(req, wa=whichalgo)
-    d = JSON.parse(String(req[:data]))
+    d = JSON.parse(String(copy(req[:data])))
     st, me = extract(d)
     algo = wa(req)
     move = findmove(algo, st, me)
@@ -52,6 +52,9 @@ function logger(f, req)
         end
     else
         @error req.method, URI(req.target), res[:status]
+        if haskey(req, :data)
+            @info :data req[:data]
+        end
         if DEBUG
             body!(w, String(deepcopy(res[:body])))
         end
