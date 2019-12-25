@@ -31,6 +31,13 @@ function prev(fr::Frame)
 	return fr.prev
 end
 
+link(fr) = link(fr.prev, fr)
+link(pr::Nothing, fr) = nothing
+function link(pr, fr)
+	f = filter(x -> x[2] == fr, collect(pairs(pr.children)))
+	return f[1][1]
+end
+
 branches(fr) = length(values(fr.children))
 nextall(fr) = collect(values(fr.children))
 

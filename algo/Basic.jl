@@ -173,7 +173,7 @@ function minmaxreduce(fr::Frame, i::Int, f=spacescore)
 	# display(fr)
 	# display(ch)
 
-	q = Dict()
+	q = Dict{Tuple{Int,Int},Int}()
 	for (k, v) in pairs(fr.children)
 		# @show k
 		u, v = minmaxreduce(v, i, f)
