@@ -1,5 +1,3 @@
-include("../env/Snake.jl")
-
 using DataStructures
 
 xy(k) = (k["y"] + 1,k["x"] + 1)
@@ -167,6 +165,7 @@ end
 function path(cls, I, J, connection, explore=[]; head=false)
 	I == J && return []
 	dist(k) = sum(abs.(J .- k))
+	# @show I
 	@inbounds cell = cls[I[1], I[2]]
 
 	n = indices.(neighbours(cell, cls))
@@ -269,15 +268,16 @@ function astar(s::SType, i::Int, t, dir)
 end
 
 function astar(cls::AbstractArray{Cell,2}, I, Js, dir)
-	length(dir) == 1 && return dir
+	length(dir) <= 1 && return dir
 	isempty(Js) && return dir
 
 	block_food = zeros(length(dir), length(Js))
 	for j=1:length(Js), i=1:length(dir)
 		block = I .+ dir[i]
+		# @show block, Js[j]
 		block_food[i, j] = shortest_distance(cls, block, Js[j])
 	end
-
+    
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
 	return unique(map(x -> dir[x[1]], good_moves))
@@ -396,7 +396,7 @@ end
 
 # reach(t::Tailer, n) = t.k <= n # reachable using a path of length n
 
-function matrix(c, S, followtails=true)
+function matrix(c, S=[], followtails=true)
 	r, ci = size(c)
 	m = Array{Float64,2}(undef, (r, ci))
 	for j=1:ci, i=1:r

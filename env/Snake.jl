@@ -1,3 +1,5 @@
+using Crayons
+
 const SNAKE_MAX_HEALTH = 100
 const UP_DIR = (-1, 0)
 const DOWN_DIR = (1, 0)
@@ -60,7 +62,9 @@ SnakeEnv(size::Tuple{Int,Int}, n::Int) =
 SnakeEnv(st::SType) = SnakeEnv(Game(st))
 
 done(env::SnakeEnv) = done(env.game)
-done(g::Game) = g.mode == MULTI_PLAYER_MODE ? g.ns == 1 : g.ns == 0
+done(g::Game) = done(g.mode, g.ns)
+done(st::SType) = done(st.mode, st.ns)
+done(mode::Symbol, ns::Int) = mode == MULTI_PLAYER_MODE ? ns == 1 : ns == 0
 
 state(env::SnakeEnv) = gamestate(env.game)
 state(env::SnakeEnv, st) = (env.game = Game(st))
@@ -298,50 +302,69 @@ showcells(cells) = showcells(stdout, cells)
 
 
 LEGENDS = Dict(
-    :empty => " ",
-    :unoccupied => "_",
-    :food => "O",
-    :head => "%",
-    :tail => "/",
-    :collision => "X",
+    :empty => "   ",
+    :unoccupied => "   ",
+    :food => " O ",
+    :head => " > ",
+    :tail => " | ",
+    :collision => " X ",
     )
 
 cellvalue(io, x...) = print(io, LEGENDS[:empty])
 cellvalue(io, x::Cell) = print(io, x.value)
+const SNAKE_COLORS = (:red, :dark_gray, :blue, :cyan,
+    :green, :light_gray, :light_red, :light_green,
+    :light_yellow, :light_blue, :light_magenta, :light_cyan, :yellow)
+const BKG_COLOR = :black
+const FKG_COLOR = :white
+const FOOD_COLOR = :magenta
+
 function showcell(io, cell)
     if cell.value != nothing
         cellvalue(io, cell)
     elseif unoccupied(cell)
-        print(io, LEGENDS[:unoccupied])
+        cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)
+        print(io, cr, LEGENDS[:unoccupied])
     elseif hasfood(cell)
-        print(io, LEGENDS[:food])
+        cr = Crayon(background=BKG_COLOR, foreground=FOOD_COLOR)
+        print(io, cr, LEGENDS[:food])
     else
         s = snakes(cell)
         if length(s) == 1
+            id = collect(s)[1]
+            cr = Crayon(background=SNAKE_COLORS[id], foreground=FKG_COLOR)
             if cell.ishead
-                print(io, LEGENDS[:head])
+                print(io, cr, LEGENDS[:head])
             elseif cell.istail
-                print(io, LEGENDS[:tail])
+                print(io, cr, LEGENDS[:tail])
             else
-                print(io, collect(s)[1])
+                print(io, cr, " $(id) ")
             end
         else
+            cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)
             print(io, LEGENDS[:collision])
         end
     end
 end
+
 function showcells(io, cells)
     r, c = size(cells)
-    println(io, "-"^(r + 2))
+    cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)
+    df = Crayon(background=:default, foreground=:default)
+    # print(io, cr, "-"^(r + 2))
+    # println(io, df)
     for i=1:r
-        print(io, "|")
+        # print(io, cr, "|")
         for j=1:c
             cell = cells[i, j]
             showcell(io, cell)
+            # print(io, df, " ")
         end
-        println(io, "|")
+        # print(io, cr, "|")
+        println(io, df)
     end
-    println(io, "-"^(r + 2))
+    # print(io, cr, "-"^(r + 2))
+    # println(io, df)
 end
 
 function step!(g::Game, moves)
@@ -411,10 +434,8 @@ function handlecollisions(board::Board, S)
     cells = board.cells
     eachsnake(S) do s
         @inbounds cell = cells[head(s)...]
-
         if length(snakes(cell)) == 1
             H = hassnakebody(cell, s)
-
             !H && return
             # tried to bite itself
             kill!(board, s, :BIT_ITSELF)
@@ -423,26 +444,23 @@ function handlecollisions(board::Board, S)
 
     eachsnake(S) do s
         @inbounds cell = cells[head(s)...]
-
         L = filter(x -> x != id(s), snakes(cell))
         length(L) == 0 && return
-
-        peers = filter(x -> !in(id(x), L), S)
+        peers = filter(x -> in(id(x), L), S)
         if any(map(x -> hassnakebody(cell, x), peers))
             # tried to bite another snake
             kill!(board, s, :BIT_ANOTHER_SNAKE)
             return
         end
-
         if any(map(x -> s < x, peers)) # it dies
             kill!(board, s, :HEAD_COLLISION)
             return
         end
-
         if any(map(x -> isequal(s, x), peers)) # everyone dies
             eachsnake(peers) do x
                 kill!(board, x, :HEAD_COLLISION)
             end
+            kill!(board, s, :HEAD_COLLISION)
             return
         end
     end
@@ -459,7 +477,6 @@ function removefood(board, food)
     end
     return collect(fc)
 end
-
 
 function move(b::Board, s::Snake)
     d = s.direction

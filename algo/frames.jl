@@ -1,35 +1,99 @@
+using Crayons
+using REPL
+using REPL.Terminals: TTYTerminal
+using REPL.TerminalMenus: enableRawMode, disableRawMode, readKey
+
 struct Frame
-	no
-	state
-	children
-    deaths
+	no::Int
+	state::SType
+	children::Dict
     prev
 end
+turn(fr::Frame) = fr.no
+movestype(st) = NTuple{length(st.snakes),NTuple{2,Int}}
+Frame(state::SType, prev) = Frame(state[:turn], copystate(state),
+ 	Dict(), prev)
 
-Frame(state, prev) = Frame(state, [], prev)
-Frame(state, deaths, prev) = Frame(state[:turn], copystate(state),
- 	Dict(), deaths, prev)
-
-function Base.show(io::IO, fr::Frame)
-	println(io, fr.no)
-	Base.show(io, Board(fr.state))
-	println(io,  "LENGTH, HEALTH")
-	println(io,
-		join(map(x ->
-			"$(id(x)): $(length(x)), $(health(x))",
-			 filter(alive, fr.state[:snakes])),
-			 "\n"))
+function determine_width(headers, rows)
+	p = length.(headers)
+	for j=1:length(rows)
+		for i=1:length(headers)
+			p[i] = max(p[i], length(rows[j][i]))
+		end
+	end
+	return p
 end
 
+function addpadding(w, str)
+	length(str) >= w && return str
+	return (" "^(w - length(str)))*str
+end
+
+function printtable(io::IO, headers, rows, alivelist)
+	p = determine_width(headers, rows)
+	for i=1:length(headers)
+		headers[i] = addpadding(p[i], headers[i])
+		for j=1:length(rows)
+			rows[j][i] = addpadding(p[i], rows[j][i])
+		end
+	end
+	df = Crayon(background=:default, foreground=:default)
+	bd = Crayon(bold=true)
+	st = Crayon(strikethrough=true)
+	cr = [merge(df, bd)]
+	for i=1:length(rows)
+		m = merge(df, Crayon(background=SNAKE_COLORS[i]))
+		if !alivelist[i]
+			m = merge(m, st)
+		end
+		push!(cr, m)
+	end
+
+	printtable(io, join(headers, "|"),
+		map(x -> join(x, "|"), rows), cr)
+end
+
+function printtable(io::IO, headers::String,
+	 	rows::T, crayons) where T <: AbstractVector{String}
+	df = Crayon(background=:default, foreground=:default)
+	println(io, df)
+	print(io, crayons[1], headers)
+	println(io, df)
+	print(io, crayons[1], "-"^length(headers))
+	println(io, df)
+	for i=1:length(rows)
+		print(io, crayons[i + 1], rows[i])
+		println(io, df)
+	end
+end
+
+function Base.show(io::IO, fr::Frame)
+	println(io, "Turn $(turn(fr))")
+	Base.show(io, Board(fr.state))
+	snks = fr.state[:snakes]
+	headers = ["ID", "Length", "Health"]
+	rows = map(x ->
+		string.([id(x), length(x),
+			health(x)]),
+		snks)
+	# println(io,  join(headers, " "))
+	# println(io,
+	# 	join(map(x -> join(x, " "), rows),
+	# 		 "\n"))
+	printtable(io, headers, rows, alive.(snks))
+end
+
+haschild(fr::Frame, moves) = haskey(fr.children, moves)
+child(fr::Frame, moves) = fr.children[moves]
+
 function child(fr::Frame, moves, nf::Frame)
+	# @show fr.children
 	fr.children[moves] = nf
 	return nf
 end
 
 
-function prev(fr::Frame)
-	return fr.prev
-end
+prev(fr::Frame) = fr.prev
 
 link(fr) = link(fr.prev, fr)
 link(pr::Nothing, fr) = nothing
@@ -47,27 +111,135 @@ function next(fr::Frame, i=1)
 	return n[i]
 end
 
-function endframes(fr::Frame)
-	ex = [fr]
-	list = []
-	while !isempty(ex)
-		r = popfirst!(ex)
-		while r != nothing
-			println(r.no)
-			if length(r.deaths) != 0
-				push!(list, r)
+# function endframes(fr::Frame)
+# 	ex = [fr]
+# 	list = []
+# 	while !isempty(ex)
+# 		r = popfirst!(ex)
+# 		while r != nothing
+# 			println(r.no)
+# 			if length(r.deaths) != 0
+# 				push!(list, r)
+# 			end
+
+# 			if branches(fr) > 1
+# 				n = nextall(r)
+# 				push!(ex, n...)
+# 				r = nothing
+# 			else
+# 				r = next(r)
+# 			end
+# 		end
+# 	end
+# 	return list
+# end
+
+terminal = REPL.TerminalMenus.terminal
+viewer(fr::Frame) = viewer(terminal, fr)
+
+function viewframe(out::IO, fr::Frame, msg::String)
+	Base.show(out, fr)
+	println(out, "p - play | space - pause | ➡ - forward\n
+		q - quit | r - replay    | ⬅ - backward")
+	println(out, msg)
+end
+
+function until(f, ch::Channel, cond = () -> true)
+	while isempty(ch.data) && cond()
+		f()
+	end
+end
+
+function playframes(term::TTYTerminal,
+	fr::Frame, l::Int, interrupt::Channel{Bool}, framech::Channel{Frame})
+	k = fr
+	until(interrupt, () -> (next(k) != nothing)) do
+		cls(term.out_stream, l)
+		viewframe(term.out_stream, k, "")
+		sleep(0.06)
+		k = next(k)
+	end
+	cls(term.out_stream, l)
+	viewframe(term.out_stream, k, "")
+	take!(interrupt)
+	put!(framech, k)
+end
+
+function nlines(buf::IO)
+	s = String(take!(buf))
+	l = split(s, "\n")
+	return s, length(l) - 1
+end
+
+function cls(out::IO, l::Int)
+	print(out, "\x1b[999D\x1b[$(l)A")
+end
+function viewtree(term::TTYTerminal, fr::Frame)
+	
+end
+
+function viewgame(term::TTYTerminal, fr::Frame)
+	# enable raw mode
+	enableRawMode(term)
+	# hide cursor
+	print(term.out_stream, "\x1b[?25l")
+
+	buf = IOBuffer()
+	msg = ""
+	viewframe(buf, fr, msg)
+	s, l = nlines(buf)
+	print(terminal.out_stream, s)
+
+	playing = false
+	interrupt = Channel{Bool}(1)
+	framech = Channel{Frame}(1)
+	k = fr
+	try
+        while true
+            c = readKey(term.in_stream)
+			if playing
+				put!(interrupt, true)
+				playing = false
+				k = take!(framech)
+				# println(term.out_stream, turn(k))
 			end
 
-			if branches(fr) > 1
-				n = nextall(r)
-				push!(ex, n...)
-				r = nothing
+			if c == 1001 # right arrow
+				# println(term.out_stream, "YAY")
+				t = next(k)
+				if t != nothing
+					k = t
+				end
+
+			elseif c == 112 # p
+				@async playframes(term, k, l, interrupt, framech)
+				playing = true
+			elseif c == 32 # space
+				# do nothing
+			elseif c == 1000 # left arrow key
+				t = prev(k)
+				if t != nothing
+					k = t
+				end
+			elseif c == 114 # r
+				k = fr
+				@async playframes(term, k, l, interrupt, framech)
+				playing = true
+			elseif c == 113 # q
+				break
 			else
-				r = next(r)
+				# eee
+			end
+			if !playing
+				cls(term.out_stream, l)
+				viewframe(terminal.out_stream, k, msg)
+				# println(term.out_stream, c)
 			end
 		end
+	finally
+		print(term.out_stream, "\x1b[?25h")
+	    disableRawMode(term)
 	end
-	return list
 end
 
 roll(fr::Frame) = roll((x) -> (Base.show(x); true), fr)
