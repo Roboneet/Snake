@@ -45,8 +45,6 @@ function logger(f, req)
     if DEBUG
         @info req.method, URI(req.target)
     end
-    
-    # d = String(copy(req.body))
 
     res = f(req)
     if isa(res, HTTP.Response)
@@ -55,8 +53,13 @@ function logger(f, req)
         end
     else
         @error req.method, URI(req.target), res[:status]
-        
-        # @info :data d
+        try
+            d = String(copy(req.body))
+            @info :data d
+        catch e
+            println("Cannot show body")
+        end
+
         if DEBUG
             body!(w, String(deepcopy(res[:body])))
         end
