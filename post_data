@@ -1,32 +1,94 @@
 {
   "game": {
-    "id": "game-id-string"
+    "id": "70b4d3d4-4fac-447e-a2a6-0889b02ea6bd"
   },
-  "turn": 1,
+  "turn": 18,
+  "you": {
+    "name": "roboneet / grenade",
+    "body": [
+      {
+        "x": 10,
+        "y": 8
+      },
+      {
+        "x": 9,
+        "y": 8
+      },
+      {
+        "x": 8,
+        "y": 8
+      },
+      {
+        "x": 7,
+        "y": 8
+      },
+      {
+        "x": 6,
+        "y": 8
+      }
+    ],
+    "id": "gs_MPHvWgvJygkxrh6d4K6TfWVJ",
+    "health": 97
+  },
   "board": {
     "height": 11,
     "width": 11,
-    "food": [{
-      "x": 1,
-      "y": 3
-    }],
-    "snakes": [{
-      "id": "snake-id-string",
-      "name": "Sneky Snek",
-      "health": 100,
-      "body": [{
-        "x": 1,
-        "y": 3
-      }]
-    }]
-  },
-  "you": {
-    "id": "snake-id-string",
-    "name": "Sneky Snek",
-    "health": 100,
-    "body": [{
-      "x": 1,
-      "y": 3
-    }]
+    "food": [],
+    "snakes": [
+      {
+        "name": "alexmckinnon / Lucille",
+        "body": [
+          {
+            "x": 3,
+            "y": 3
+          },
+          {
+            "x": 2,
+            "y": 3
+          },
+          {
+            "x": 2,
+            "y": 4
+          },
+          {
+            "x": 1,
+            "y": 4
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ],
+        "id": "gs_cWb9Y3jChjTPvHWxVbd3cwB9",
+        "health": 96
+      },
+      {
+        "name": "roboneet / grenade",
+        "body": [
+          {
+            "x": 10,
+            "y": 8
+          },
+          {
+            "x": 9,
+            "y": 8
+          },
+          {
+            "x": 8,
+            "y": 8
+          },
+          {
+            "x": 7,
+            "y": 8
+          },
+          {
+            "x": 6,
+            "y": 8
+          }
+        ],
+        "id": "gs_MPHvWgvJygkxrh6d4K6TfWVJ",
+        "health": 97
+      }
+    ]
   }
 }

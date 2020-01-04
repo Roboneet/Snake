@@ -5,7 +5,11 @@ function extract(params::Dict)
     board_p = params["board"]
     height = board_p["height"]
     width = board_p["width"]
-    food = xy.(board_p["food"])
+	if isempty(board_p["food"])
+		food = Tuple{Int,Int}[]
+	else
+    	food = xy.(board_p["food"])
+	end
     snakes = Snake[]
     me = 1
     for i=1:length(board_p["snakes"])
@@ -277,7 +281,7 @@ function astar(cls::AbstractArray{Cell,2}, I, Js, dir)
 		# @show block, Js[j]
 		block_food[i, j] = shortest_distance(cls, block, Js[j])
 	end
-    
+
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
 	return unique(map(x -> dir[x[1]], good_moves))
