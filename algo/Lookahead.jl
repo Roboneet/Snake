@@ -102,14 +102,118 @@ struct OneSearch <: AbstractTorch end
 (c::OneSearch)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
 (c::OneSearch)(args...) = lookahead(c, args...)
 
-function lookat(T::OneSearch, s::SType, i::Int)
+function killermoves(s::SType, i::Int, m)
 	N = length(s.snakes)
 	l = Dict(ntuple(
 		j -> j == i ?
-			j=>basic(s, i) :
+			j=>m :
 			j=>killer(s, j, i),
 		N)...)
 	moves = map(x -> ntuple(j -> j == i ? x : l[j], N), l[i])
+end
+
+function lookat(T::OneSearch, s::SType, i::Int)
+	killermoves(s, i, basic(s, i))
+end
+
+# ==============================================================
+#                          Seq search
+# ==============================================================
+
+# look at all possible basic moves, with sequential adversarial agents
+
+struct SeqSearch <: AbstractTorch end
+(c::SeqSearch)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
+(c::SeqSearch)(args...) = lookahead(c, args...)
+
+struct SeqKiller{T,M} <: AbstractAlgo end
+pipe(algo::Type{SeqKiller{T,M}}, s::SType, i::Int) where {T,M} =
+	flow(pipe(Killer{T}, s, i), seqkiller(s, i, T, M))
+
+# wiser killer, because it knows what the target is going to do
+function seqkiller(s, j, i, x)
+	!alive(s.snakes[j]) && return identity()
+	h = head(s.snakes[i]) .+ x
+	return choose(ele -> begin
+		# choose a surely killer move
+		ele == h
+	end)
+end
+
+function seqkillermoves(s::SType, i::Int, m)
+	N = length(s.snakes)
+	moves = map(x -> ntuple(j -> j == i ? x :
+		findmove(SeqKiller{i,x}, s, j), N), m)
+end
+
+function lookat(T::SeqSearch, s::SType, i::Int)
+	seqkillermoves(s, i, basic(s, i))
+end
+
+
+# ==============================================================
+#                          Seq local search
+# ==============================================================
+
+# look at all possible basic moves, with sequential adversarial agents
+
+struct SeqLocalSearch <: AbstractTorch end
+(c::SeqLocalSearch)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
+(c::SeqLocalSearch)(args...) = lookahead(c, args...)
+
+function seqlocalmoves(s::SType, i::Int, m)
+	# search all moves when a snake is nearby
+	# to avoid any false hopes
+	N = length(s.snakes)
+	function within(s, i, r)
+		filter(x ->
+			all(abs.((head(x) .- i)) .<= r),
+			s)
+	end
+	R = filter(alive, s.snakes)
+	R = filter(x -> id(x) != i, R)
+	R = within(R, head(s.snakes[i]), 2)
+
+	moves = []
+	for i2=1:length(m)
+		x = m[i2]
+		h = head(s.snakes[i]) .+ x
+		r = within(R, h, 1)
+		# @show head.(r), h
+		if length(r) > 1 || isempty(r)
+			# too many local snakes
+			# fallback to seq search
+			# or empty
+			nt = ntuple(j -> j == i ? x :
+				findmove(SeqKiller{i,x}, s, j), N)
+			# @show nt
+			push!(moves, nt)
+		else
+			# @show "local", r
+			# try all deadly moves
+			a = id(r[1])
+
+			p = pipe(SeqKiller{i,x}, s, a)
+			n = p(DIRECTIONS)
+			l = Dict(ntuple(
+				j -> j == i ?
+					j=> x :
+					j=> pipe(Killer{i}, s, j)(DIRECTIONS),
+				N)...)
+			for j=1:length(n)
+				nt = ntuple(k -> k == i ? x :
+					(k == a ? n[j] : rand(l[k])),
+				N)
+
+				push!(moves, nt)
+			end
+		end
+	end
+	return moves
+end
+
+function lookat(T::SeqLocalSearch, s::SType, i::Int)
+	seqlocalmoves(s, i, basic(s, i))
 end
 
 # ==============================================================
@@ -135,13 +239,9 @@ end
 #                          Intersecting Algo lookahead
 # ==============================================================
 
-# follow all the guiding staffs
-# Use as: LightSpace{NStaff{Tuple{Staff{FoodChase,2},Staff{SpaceChase,2}}}}
-# not useful by itself
+# Explore Intersecting moves from different algos
 struct Intersect{A <: Tuple,N} <: AbstractTorch end
 function (c::Intersect{A,N})(s::SType, i::Int, fr::Frame) where {A,N}
-	o = OneSearch()
-	o(s, i, fr)
 	lookahead(c, s, i, N, fr)
 end
 (c::Intersect{A,N})(args...) where {A,N} = lookahead(c, args...)
@@ -157,14 +257,11 @@ function lookat(::Intersect{A,N}, s::SType, i::Int) where A <: Tuple where N
 			d = k
 		end
 	end
+	# @show d
+	# display(Board(s))
+	# @show statevalue(Frame(s, nothing), i)
 
-	M = length(s.snakes)
-	l = Dict(ntuple(
-		j -> j == i ?
-			j=>d :
-			j=>killer(s, j, i),
-		M)...)
-	moves = map(x -> ntuple(j -> j == i ? x : l[j], M), d)
+	seqlocalmoves(s, i, d)
 end
 
 Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)

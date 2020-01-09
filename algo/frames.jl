@@ -135,12 +135,36 @@ end
 # end
 
 terminal = REPL.TerminalMenus.terminal
-viewer(fr::Frame) = viewer(terminal, fr)
 
-function viewframe(out::IO, fr::Frame, msg::String)
+function evalmsg(io, fr, f)
+	df = Crayon(foreground=:default, background=:default, bold=false)
+	s = string(f(fr))
+	print(io, Crayon(background=:yellow, foreground=:black), "Eval: $s ", df)
+	println(io, df)
+end
+
+function viewframe(out::IO, fr::Frame, f::Function)
 	Base.show(out, fr)
-	println(out, "p - play | space - pause | ➡ - forward\n
-		q - quit | r - replay    | ⬅ - backward")
+	println(out)
+	evalmsg(out, fr, f)
+	println(out, "p - play | space - pause | ➡ - forward
+		\nq - quit | r - replay    | ⬅ - backward")
+	println(out)
+end
+
+function viewnode(out::IO, fr::Frame, f, i, msg, d)
+	println(out,"Depth: $d")
+	Base.show(out, fr)
+	ch = next(fr, i)
+	df = Crayon(foreground=:default, background=:default, bold=false)
+	println(out, df)
+	print(out, Crayon(bold=true), "Child $i of $(branches(fr)) children")
+	println(out, df)
+	println(out, df, "Link: $(collect(keys(fr.children))[i])")
+	Base.show(out, Board(ch.state))
+	evalmsg(out, ch, f)
+	println(out, "⬅ \\ ➡ - view children | ↓ - select child
+	\nq - quit               | ⬆ - select parent")
 	println(out, msg)
 end
 
@@ -151,16 +175,16 @@ function until(f, ch::Channel, cond = () -> true)
 end
 
 function playframes(term::TTYTerminal,
-	fr::Frame, l::Int, interrupt::Channel{Bool}, framech::Channel{Frame})
+	fr::Frame, l::Int, interrupt::Channel{Bool}, framech::Channel{Frame}, f)
 	k = fr
 	until(interrupt, () -> (next(k) != nothing)) do
 		cls(term.out_stream, l)
-		viewframe(term.out_stream, k, "")
+		viewframe(term.out_stream, k, f)
 		sleep(0.06)
 		k = next(k)
 	end
 	cls(term.out_stream, l)
-	viewframe(term.out_stream, k, "")
+	viewframe(term.out_stream, k, f)
 	take!(interrupt)
 	put!(framech, k)
 end
@@ -174,11 +198,78 @@ end
 function cls(out::IO, l::Int)
 	print(out, "\x1b[999D\x1b[$(l)A")
 end
-function viewtree(term::TTYTerminal, fr::Frame)
-	
+
+viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, x -> statevalue(x, i))
+viewtree(fr::Frame, i::Int=1) = viewtree(terminal, fr, x -> statevalue(x, i))
+function viewtree(term::TTYTerminal, fr::Frame, f)
+	branches(fr) == 0 && error("single node")
+
+	enableRawMode(term)
+	print(term.out_stream, "\x1b[?25l")
+
+	buf = IOBuffer()
+	msg = ""
+	viewnode(buf, fr, f, 1, msg, 1)
+	s, l = nlines(buf)
+	print(terminal.out_stream, s)
+	k = fr
+	is = [1]
+	t = 1
+	nb = branches(k)
+	try
+        while true
+            c = readKey(term.in_stream)
+
+			if c == 1001 # right arrow
+				# println(term.out_stream, "YAY")
+				# t = next(k)
+				# if t != nothing
+				# 	k = t
+				# end
+				if is[t] < nb
+					is[t] += 1
+				else
+					is[t] = 1
+				end
+			elseif c == 1000 # left arrow key
+				if is[t] > 1
+					is[t] -= 1
+				else
+					is[t] = nb
+				end
+			elseif c == 1002 # arrow up
+				if t > 1
+					k = prev(k)
+					t -= 1
+					nb = branches(k)
+				end
+			elseif c == 1003 # arrow down
+				ch = next(k, is[t])
+				if branches(ch) > 0
+					k = ch
+					t += 1
+					nb = branches(k)
+					if t > length(is)
+						push!(is, 1)
+					end
+				end
+			elseif c == 113 # q
+				break
+			else
+				# eee
+			end
+
+			cls(term.out_stream, l)
+			viewnode(terminal.out_stream, k, f, is[t], msg, t)
+		end
+	finally
+		print(term.out_stream, "\x1b[?25h")
+	    disableRawMode(term)
+	end
+
 end
 
-function viewgame(term::TTYTerminal, fr::Frame)
+function viewgame(term::TTYTerminal, fr::Frame, f)
 	# enable raw mode
 	enableRawMode(term)
 	# hide cursor
@@ -186,7 +277,7 @@ function viewgame(term::TTYTerminal, fr::Frame)
 
 	buf = IOBuffer()
 	msg = ""
-	viewframe(buf, fr, msg)
+	viewframe(buf, fr, f)
 	s, l = nlines(buf)
 	print(terminal.out_stream, s)
 
@@ -200,6 +291,7 @@ function viewgame(term::TTYTerminal, fr::Frame)
 			if playing
 				put!(interrupt, true)
 				playing = false
+				# println(term.out_stream, "eeee")
 				k = take!(framech)
 				# println(term.out_stream, turn(k))
 			end
@@ -212,7 +304,7 @@ function viewgame(term::TTYTerminal, fr::Frame)
 				end
 
 			elseif c == 112 # p
-				@async playframes(term, k, l, interrupt, framech)
+				@async playframes(term, k, l, interrupt, framech, f)
 				playing = true
 			elseif c == 32 # space
 				# do nothing
@@ -223,7 +315,7 @@ function viewgame(term::TTYTerminal, fr::Frame)
 				end
 			elseif c == 114 # r
 				k = fr
-				@async playframes(term, k, l, interrupt, framech)
+				@async playframes(term, k, l, interrupt, framech, f)
 				playing = true
 			elseif c == 113 # q
 				break
@@ -232,7 +324,7 @@ function viewgame(term::TTYTerminal, fr::Frame)
 			end
 			if !playing
 				cls(term.out_stream, l)
-				viewframe(terminal.out_stream, k, msg)
+				viewframe(terminal.out_stream, k, f)
 				# println(term.out_stream, c)
 			end
 		end
@@ -287,10 +379,25 @@ function Base.length(fr::Frame)
 	return l
 end
 
-function treeview(fr::Frame, padding=0)
-	for (k, v) in pairs(fr.children)
+function treeview(fr::Frame, padding=0; i=1, verbose=false)
+	dirs = Dict(
+		UP_DIR => "UP",
+		LEFT_DIR => "LEFT",
+		RIGHT_DIR => "RIGHT",
+		DOWN_DIR => "DOWN",
+		(0,0) => "_"
+		)
+	ch = pairs(fr.children)
+	if isempty(ch)
 		print(" "^padding)
-		println(k)
+		println("statevalue($(i)): $(statevalue(fr, i))")
+		if verbose
+			display(fr)
+		end
+	end
+	for (k, v) in ch
+		print(" "^padding)
+		println(join(map(x -> dirs[x], k), ", "))
 		treeview(v, padding + 2)
 	end
 end

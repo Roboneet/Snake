@@ -7,6 +7,7 @@ struct Basic <: AbstractAlgo end
 
 findmoves(algo::Type{T}, s::SType) where T <: AbstractAlgo = ntuple(x -> findmove(algo, s, x), length(s.snakes))
 function findmove(algo::Type{T}, s::SType, i::Int; kwargs...) where T <: AbstractAlgo
+	!alive(s.snakes[i]) && return (0,0)
 	rand(pipe(algo, s, i; kwargs...)(DIRECTIONS))
 end
 
@@ -91,7 +92,7 @@ function stab(s::SType, i::Int, t::Int)
 		end
 		# navigate through the boundary of reachable space
 
-		astar(s, i, target, safe)
+		astar(s, i, target, safe; head=true)
 	end
 end
 

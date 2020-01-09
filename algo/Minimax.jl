@@ -2,53 +2,80 @@
 #                          LightSpace
 # ==============================================================
 
-# Complete treesearch upto level M
+# Complete treesearch upto level M with CandleLight as torch
 struct LightSpace{T <: AbstractTorch} <: AbstractAlgo end
 
 lightspace(N=1) = LightSpace{CandleLight{N}}
 torch(l::Type{LightSpace{T}}) where T = T()
 
-function statevalue(fr::Frame, i::Int, f=reachableclusters; cap=80)
-	# @show alive(fr.state.snakes[i])
+function statevalue(fr::Frame, i::Int)
+	h = healthvalue(fr, i)
+	# h - foodvalue(fr, i)
+	min(spacevalue(fr, i), h)
+end
+function healthvalue(fr::Frame, i::Int; α=1.0)
 	!alive(fr.state.snakes[i]) && return 0
-	# display(fr)
-	c, d = f(fr.state)
-	# display(c)
-	# display(d)
-	s = fr.state
+	round(Int, health(fr.state.snakes[i])*α)
+end
+function listclusters(s::SType, i::Int)
+	c, d = reachableclusters(s, i)
+	l = listclusters(s, i, c, d)
+	return c, d, l
+end
+function listclusters(s::SType, i::Int,
+	c::Array{T,2}, d::Dict{T,Int}) where T
 	I = head(s.snakes[i])
 	n = neighbours(I, s[:height], s[:width])
 	if length(s.snakes[i].trail) != 1
 		J = s.snakes[i].trail[end - 1]
 		n = filter(x -> x != J, n) # not on snake
 	end
-	ne = nempty(c, d, I)
 	U = unique(map(x -> c[x...], n))
+	filter(x -> x != c[I[1], I[2]], U)
+end
 
+function foodvalue(fr::Frame, i::Int)
+	!alive(fr.state.snakes[i]) && return 0
+	s = fr.state
+	c, d, l = listclusters(s, i)
+	food = s.food
+	r = 0
+	for i=1:length(food)
+		f = food[i]
+		if c[f[1], f[2]] in l
+			r += 1
+		end
+	end
+	return r
+end
+function spacevalue(fr::Frame, i::Int; cap=100)
+	# @show alive(fr.state.snakes[i])
+	!alive(fr.state.snakes[i]) && return 0
+	# display(fr)
+	c, d, l = listclusters(fr.state, i)
+	# display(c)
+	# display(d)
+	ne = nempty(size(c), filter(alive, fr.state.snakes))
+	ne == 0 && return Inf
+	isempty(l) && return 0
 	pempty(x) = min(floor(Int, x*100/ne), cap)
 
-	S = maximum(map(x -> haskey(d, x) && x != c[I...] ? pempty(d[x]) : 0, U)) # not on snake body
+	S = maximum(map(x -> haskey(d, x) ? pempty(d[x]) : 0, l))
 	# @show S
 	return S
 end
 
-function nempty(c::AbstractArray{T,2}, d::Dict{T,Int}, k::Tuple{Int,Int}) where T
-	r, ci = size(c)
-	# @show k
-	# display(c)
-
-	l = c[k...]
-	# @show l
-	# @show d
-	r*ci - d[l]
+function nempty(z, s::Array{Snake,1})
+	r, ci = z
+	r*ci - sum(length.(s))
 end
 
 function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 	isempty(fr.children) && return f(fr, i), []
-	# display(fr)
+	# display(fr.children)
 	# display(ch)
 
-	q = Dict{Tuple{Int,Int},Int}()
+	q = Dict{Tuple{Int,Int},Float64}()
 	for (k, v) in fr.children
 		# @show k
 		# @show k[i]
@@ -59,7 +86,7 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 			q[k[i]] = u
 		end
 	end
-	# @show q
+
 	maxpairs(q)
 end
 
@@ -69,13 +96,13 @@ function maxpairs(q::Dict{Tuple{Int,Int},T}) where T
 	m, filter(x -> x[2] == m, Q)
 end
 
-function spacelook(T, s::SType, i::Int, f=reachableclusters)
+function spacelook(T, s::SType, i::Int; f=minmaxreduce)
 	b = basic(s, i)
 	length(b) <= 1 && return b
 	fr = lookahead(T, s, i)
 	# treeview(fr)
 	# min - max value
-	S, q = minmaxreduce(fr, i, (x...) -> statevalue(x..., f))
+	S, q = f(fr, i)
 
 	map(y -> y[1], q)
 end

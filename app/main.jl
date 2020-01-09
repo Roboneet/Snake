@@ -17,6 +17,7 @@ algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
+algoDict["wip"] = intersect((Basic,), 4)
 
 function whichalgo(req)
     if haskey(req, :params)
@@ -39,7 +40,7 @@ function move(req, wa=whichalgo)
     return JSON.json((move=move,))
 end
 
-test_lightspace(req) = move(req, (r) -> lightspace(parse(Int, r[:params][:n])))
+test_intersect(req) = move(req, (r) -> intersect((Basic,), parse(Int, r[:params][:n])))
 
 function logger(f, req)
     if DEBUG
@@ -84,7 +85,7 @@ end
    page("/:s/move", move),
    page("/:s/ping", respond("ok")),
    page("/:s/end", foo),
-   page("/test/lightspace/:n/move", test_lightspace),
+   page("/test/intersect/:n/move", test_intersect),
    Mux.notfound())
 
 

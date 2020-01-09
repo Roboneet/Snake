@@ -11,11 +11,11 @@ const MULTI_PLAYER_MODE = :MULTI
 
 mutable struct Snake
     id::Int
-    trail        # last element is the head
-    health
-    alive
-    direction
-    death_reason
+    trail::Array{Tuple{Int,Int},1}        # last element is the head
+    health::Int
+    alive::Bool
+    direction::Union{Tuple{Int,Int},Nothing}
+    death_reason::Union{Symbol,Nothing}
 end
 
 const SType = NamedTuple{(:height, :width, :food, :snakes, :ns, :turn, :mode),
@@ -233,7 +233,9 @@ end
 function neighbours(cell::Tuple{Int,Int}, r, c)
     i, j = cell
     n = []
-    for (Δi, Δj) in [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    (1 < i < r && 1 < j < c) && return map(x -> (i, j) .+ x, dirs)
+    for (Δi, Δj) in dirs
         I, J = i + Δi, j + Δj
         if in_bounds(I, J, r, c)
             push!(n, (I, J,))

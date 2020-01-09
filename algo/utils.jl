@@ -178,7 +178,10 @@ function path(cls, I, J, connection, explore=[]; head=false)
 	N = filter(t -> begin
 	   @inbounds c = connection[t[1], t[2]]
 	   @inbounds k = cls[t[1], t[2]]
-	   c == nothing && length(snakes(k)) == 0
+	   c != nothing && return false
+	   length(snakes(k)) == 0 && return true
+	   # @show head, t, J
+	   head && (t == J)
 	end, n)
 
 	foreach(t -> begin
@@ -261,26 +264,29 @@ end
 
 astar(s::SType, i::Int, t) = astar(s, i, t, directionpipe(s, i))
 
-function astar(s::SType, i::Int, t, dir)
+function astar(s::SType, i::Int, t, dir; kwargs...)
 	snake = s[:snakes][i]
 	!snake.alive && return 0
 
 	I = head(snake)
 	cls = cells(s)
 	food = t != nothing
-	return  food ? astar(cls, I, [t], dir) : astar(cls, I, [tail(snake)], dir)
+	return  food ? astar(cls, I, [t], dir; kwargs...) : astar(cls, I, [tail(snake)], dir; kwargs...)
 end
 
-function astar(cls::AbstractArray{Cell,2}, I, Js, dir)
+function astar(cls::AbstractArray{Cell,2}, I, Js, dir; kwargs...)
 	length(dir) <= 1 && return dir
 	isempty(Js) && return dir
 
 	block_food = zeros(length(dir), length(Js))
 	for j=1:length(Js), i=1:length(dir)
 		block = I .+ dir[i]
+		# @show dir[i], kwargs
 		# @show block, Js[j]
-		block_food[i, j] = shortest_distance(cls, block, Js[j])
+		block_food[i, j] = shortest_distance(cls, block, Js[j]; kwargs...)
 	end
+	# @show dir
+	# @show block_food
 
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
@@ -400,11 +406,11 @@ end
 
 # reach(t::Tailer, n) = t.k <= n # reachable using a path of length n
 
-function matrix(c, S=[], followtails=true)
+function matrix(c, S=[], followtails=true; default::T=-1.0) where T
 	r, ci = size(c)
-	m = Array{Float64,2}(undef, (r, ci))
+	m = Array{T,2}(undef, (r, ci))
 	for j=1:ci, i=1:r
-		m[i, j] = -1.0
+		m[i, j] = default
 	end
 	# if followtails
 	# 	foreach(S) do x
@@ -486,51 +492,159 @@ function reachableclusters(s::SType, i=nothing)
 	return reachableclusters(cls, s.snakes)
 end
 
-function reachableclusters(cls, snks)
+function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 	S = filter(alive, snks)
-	length(S) == 0 && return zeros(size(cls)), Dict()
-	init = matrix(cls, S)
-	l = length(S)
-	d = Array{typeof(init),1}(undef, l)
-	@inbounds for i=1:l
-		x = S[i]
-		d[i] = distancematrix(cls, head(x), copy(init), health(x))
-	end
-	M, N = size(cls)
-	partitions = partition(S, d)
-	flooded, fdict = floodfill(cls)
-
-	clusters = Array{Int,2}(undef, (M, N))
-
-	u = Dict{Int,Dict{Int,Int}}()
-
+	r, ci = size(cls)
+	length(S) == 0 && return zeros(size(cls)), Dict(0=>r*ci)
+	init = matrix(cls; default=-1)
+	ss = sort(S, by=length)
+	exp = Tuple{Int,Int}[]
+	roots = Dict{Int,Int}()
+	l = length(ss)
 	cnt = 1
-	@inbounds for j=1:N, i=1:M
-		if hassnake(cls[i, j])
-			clusters[i, j] = 0
-		else
-			p = partitions[i, j]
-			if !haskey(u, p)
-				u[p] = Dict{Int,Int}()
-			end
-			f = flooded[i, j]
-			if !haskey(u[p], f)
-				u[p][f] = cnt
-				cnt += 1
-			end
-			clusters[i, j] = u[p][f]
+	@inbounds for i=l:-1:1
+		snake = ss[i]
+		N = neighbours(head(snake), r, ci)
+		foreach(N) do n
+			nx, ny = n[1], n[2]
+			cell = cls[nx, ny]
+			hassnake(cell) && return
+			roots[cnt] = id(snake)
+			init[nx, ny] = cnt
+			push!(exp, n)
+			cnt += 1
 		end
 	end
-
-	cdict = Dict{Int,Int}()
-
-	@inbounds for j=1:N, i=1:M
-		c = clusters[i, j]
-		if !haskey(cdict, c)
-			cdict[c] = 0
+	cids = Int[1:(cnt - 1)...]
+	clens = ones(Int, cnt - 1)
+	function ctop(c::Int)
+		c == -1 && return c
+		@inbounds while cids[c] != c
+			c = cids[c]
 		end
-
-		cdict[c] += 1
+		return c
 	end
-	return clusters, cdict
+	function merge_cls(k::Int, v::Int)
+		@inbounds begin
+			a, b =  clens[k] > clens[v] ? (k, v) : (v, k)
+			at = ctop(a)
+			cids[b] = cids[a] = at
+			clens[at] += clens[b]
+			clens[b] = clens[a] = clens[at]
+		end
+	end
+	ni = 0
+	@inbounds while !isempty(exp)
+		ni += 1
+		x = popfirst!(exp)
+		N = neighbours(x, r, ci)
+		v = init[x[1], x[2]]
+		rt = roots[v]
+		xn = 0
+
+		for j=1:length(N)
+			n = N[j]
+			nx, ny = n[1], n[2]
+			cell = cls[nx, ny]
+			hassnake(cell) && continue
+			k = init[nx, ny]
+			if k != -1
+				k == v && continue # ancestor
+				roots[k] != rt && continue # a bigger snake reached here first
+				cids[k] == cids[v] && continue # already merged
+				# merge k and v clusters
+				merge_cls(k, v)
+
+			else
+				init[nx, ny] = cids[v]
+				clens[v] += 1
+				push!(exp, n)
+				xn += 1
+			end
+		end
+		# display(exp)
+		# g = convert(Array{Any,2}, deepcopy(init))
+		# function colorarray(g)
+		# 	r, c = size(g)
+		# 	bc = Crayon(background=:black)
+		# 	df = Crayon(background=:default, foreground=:default)
+		# 	io = IOBuffer()
+		# 	foreach( i -> begin
+		# 		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : "   "),
+		# 			map(j -> g[i, j] == -1 ? (j, bc,) :
+		# 			(j, Crayon(background=SNAKE_COLORS[g[i, j]],
+		# 				foreground=:white),), 1:c))
+		# 		println(io, df)
+		# 		end, 1:r)
+		# 	String(take!(io))
+		# end
+		#
+		# print(colorarray(g))
+		# println()
+		# @show xn
+		# sleep(0.06)
+	end
+	# @show ni, r*ci
+	d = Dict{Int,Int}()
+	@inbounds for j=1:ci, i=1:r
+		c = init[i, j]
+		if c != -1
+			c = ctop(c)
+			init[i, j] = c # final cluster id
+		end
+		if !haskey(d, c)
+			d[c] = 0
+		end
+		d[c] += 1
+	end
+	return init, d
 end
+#
+# function reachableclusters(cls, snks)
+# 	S = filter(alive, snks)
+# 	length(S) == 0 && return zeros(size(cls)), Dict()
+# 	init = matrix(cls, S)
+# 	l = length(S)
+# 	d = Array{typeof(init),1}(undef, l)
+# 	@inbounds for i=1:l
+# 		x = S[i]
+# 		d[i] = distancematrix(cls, head(x), copy(init), health(x))
+# 	end
+# 	M, N = size(cls)
+# 	partitions = partition(S, d)
+# 	flooded, fdict = floodfill(cls)
+#
+# 	clusters = Array{Int,2}(undef, (M, N))
+#
+# 	u = Dict{Int,Dict{Int,Int}}()
+#
+# 	cnt = 1
+# 	@inbounds for j=1:N, i=1:M
+# 		if hassnake(cls[i, j])
+# 			clusters[i, j] = 0
+# 		else
+# 			p = partitions[i, j]
+# 			if !haskey(u, p)
+# 				u[p] = Dict{Int,Int}()
+# 			end
+# 			f = flooded[i, j]
+# 			if !haskey(u[p], f)
+# 				u[p][f] = cnt
+# 				cnt += 1
+# 			end
+# 			clusters[i, j] = u[p][f]
+# 		end
+# 	end
+#
+# 	cdict = Dict{Int,Int}()
+#
+# 	@inbounds for j=1:N, i=1:M
+# 		c = clusters[i, j]
+# 		if !haskey(cdict, c)
+# 			cdict[c] = 0
+# 		end
+#
+# 		cdict[c] += 1
+# 	end
+# 	return clusters, cdict
+# end
