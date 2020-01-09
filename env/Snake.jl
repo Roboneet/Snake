@@ -470,7 +470,7 @@ end
 
 function removefood(board, food)
     fc = Set(food)
-    for f in food
+    for f in unique(food)
         @inbounds cell = board.cells[f...]
         if length(snakes(cell)) != 0
             eat!(cell)
