@@ -17,7 +17,7 @@ algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
-algoDict["wip"] = intersect((Basic,), 4)
+algoDict["wip"] = intersect((Basic,), 2)
 
 function whichalgo(req)
     if haskey(req, :params)
