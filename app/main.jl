@@ -85,6 +85,10 @@ function firstcall()
     step!(env, moves)
 end
 
+function start(req)
+    JSON.json((color="#ffe562",))
+end
+
 @app sankeserver = (
    logger,
    Mux.defaults,
