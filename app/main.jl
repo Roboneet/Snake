@@ -17,7 +17,7 @@ algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
-algoDict["wip"] = intersect((Basic,), 2)
+algoDict["wip"] = intersect((Basic,), 4)
 
 function whichalgo(req)
     if haskey(req, :params)
@@ -93,7 +93,7 @@ end
    logger,
    Mux.defaults,
    page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
-   page("/:s/start", respond("{color:#f00}")),
+   page("/:s/start", start),
    page("/:s/move", move),
    page("/:s/ping", respond("ok")),
    page("/:s/end", foo),
