@@ -77,6 +77,10 @@ function foo(req)
     return "ok"
 end
 
+function firstcall()
+    fr = play([intersect((Basic,), 4), Grenade, Kettle, Cupcake, Grenade, DKiller], SnakeEnv((11,11), 6))
+end
+
 @app sankeserver = (
    logger,
    Mux.defaults,
@@ -88,6 +92,7 @@ end
    page("/test/intersect/:n/move", test_intersect),
    Mux.notfound())
 
+firstcall()
 
 using Sockets
 if haskey(ENV, "ON_HEROKU")

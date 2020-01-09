@@ -11,7 +11,11 @@ torch(l::Type{LightSpace{T}}) where T = T()
 function statevalue(fr::Frame, i::Int)
 	h = healthvalue(fr, i)
 	# h - foodvalue(fr, i)
-	min(spacevalue(fr, i), h)
+	min(spacevalue(fr, i), h) + lengthvalue(fr, i)
+end
+function lengthvalue(fr::Frame, i::Int)
+	!alive(fr.state.snakes[i]) && return 0
+	return length(fr.state.snakes[i])
 end
 function healthvalue(fr::Frame, i::Int; α=1.0)
 	!alive(fr.state.snakes[i]) && return 0
@@ -81,9 +85,9 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 		# @show k[i]
 		u, v = minmaxreduce(v, i, f)
 		if haskey(q, k[i])
-			q[k[i]] = min(q[k[i]], u)
+			q[k[i]] = min(q[k[i]], u + 1)
 		else
-			q[k[i]] = u
+			q[k[i]] = u + 1 # bonus point for being alive upto this depth
 		end
 	end
 
