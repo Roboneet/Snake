@@ -398,7 +398,7 @@ function treeview(fr::Frame, padding=0; i=1, verbose=false)
 	for (k, v) in ch
 		print(" "^padding)
 		println(join(map(x -> dirs[x], k), ", "))
-		treeview(v, padding + 2)
+		treeview(v, padding + 2; i=i, verbose=verbose)
 	end
 end
 
