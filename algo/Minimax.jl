@@ -11,7 +11,8 @@ torch(l::Type{LightSpace{T}}) where T = T()
 function statevalue(fr::Frame, i::Int)
 	h = healthvalue(fr, i)
 	# h - foodvalue(fr, i)
-	min(spacevalue(fr, i), h) + 0.1*h*foodvalue(fr, i)
+	# + 0.1*h*foodvalue(fr, i)
+	min(spacevalue(fr, i), h)
 end
 function lengthvalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
