@@ -17,7 +17,7 @@ algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
-algoDict["wip"] = intersect((Basic,), 4)
+algoDict["wip"] = sls(4)
 
 function whichalgo(req)
     if haskey(req, :params)
@@ -40,7 +40,7 @@ function move(req, wa=whichalgo)
     return JSON.json((move=move,))
 end
 
-test_intersect(req) = move(req, (r) -> intersect((Basic,), parse(Int, r[:params][:n])))
+test_intersect(req) = move(req, (r) -> sls(parse(Int, r[:params][:n])))
 
 function logger(f, req)
     if DEBUG

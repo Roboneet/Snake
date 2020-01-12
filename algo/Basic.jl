@@ -74,8 +74,8 @@ function stab(s::SType, i::Int, t::Int)
 		map(x -> x .+ I, y))))
 
 	return y -> begin
-		# safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s[:snakes]), y)
-		safe = y
+		safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s[:snakes]), y)
+		# safe = y
 		# @show safe
 		isempty(safe) && return []
 
@@ -83,16 +83,12 @@ function stab(s::SType, i::Int, t::Int)
 
 		# go for the head if its reachable
 		# otherwise, follow tail
-		if canreach(I, head(snakes[t]))
+		if canreach(I, head(snakes[t])) && length(snakes[i]) > length(snakes[t])
 			target = head(snakes[t])
-		elseif canreach(I, tail(snakes[t]))
-			target = tail(snakes[t])
+			return astar(s, i, target, safe; head=true)
 		else
-			target = rand(map(x -> x .+ I, safe))
+			return safe
 		end
-		# navigate through the boundary of reachable space
-
-		astar(s, i, target, safe; head=true)
 	end
 end
 

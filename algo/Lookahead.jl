@@ -79,7 +79,7 @@ end
 # ==============================================================
 
 # follow the guiding staff
-# Use as: LightSpace{Staff{FoodChase,2}}
+# Use as: Minimax{Staff{FoodChase,2}}
 # not useful by itself
 struct Staff{A,N} <: AbstractTorch end
 
@@ -128,16 +128,18 @@ struct SeqSearch <: AbstractTorch end
 
 struct SeqKiller{T,M} <: AbstractAlgo end
 pipe(algo::Type{SeqKiller{T,M}}, s::SType, i::Int) where {T,M} =
-	flow(pipe(Killer{T}, s, i), seqkiller(s, i, T, M))
+	flow(pipe(Killer{T}, s, i), seqkiller(s, i, T, M)...)
 
 # wiser killer, because it knows what the target is going to do
 function seqkiller(s, j, i, x)
-	!alive(s.snakes[j]) && return identity()
+	!alive(s.snakes[j]) && return (identity,)
 	h = head(s.snakes[i]) .+ x
-	return choose(ele -> begin
+	k = length(s.snakes[j]) > length(s.snakes[i])
+
+	return k ? (choose(ele -> begin
 		# choose a surely killer move
 		ele == h
-	end)
+	end),)  : (identity,)
 end
 
 function seqkillermoves(s::SType, i::Int, m)
@@ -157,28 +159,56 @@ end
 
 # look at all possible basic moves, with sequential adversarial agents
 
-struct SeqLocalSearch <: AbstractTorch end
-(c::SeqLocalSearch)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
-(c::SeqLocalSearch)(args...) = lookahead(c, args...)
+struct SeqLocalSearch{N} <: AbstractTorch end
+(c::SeqLocalSearch{N})(s::SType, i::Int, fr::Frame) where N = lookahead(c, s, i, N, fr)
+(c::SeqLocalSearch{N})(args...) where N = lookahead(c, args...)
+
+sls(N=4) = Minimax{SeqLocalSearch{N}}
 
 function seqlocalmoves(s::SType, i::Int, m)
 	# search all moves when a snake is nearby
 	# to avoid any false hopes
 	N = length(s.snakes)
+	cls = cells(s)
 	function within(s, i, r)
-		filter(x ->
-			all(abs.((head(x) .- i)) .<= r),
-			s)
+		# any body part within reach
+		# filter(x ->
+		# 	reduce((acc, y) ->
+		# 		acc || all(abs.((y .- i)) .<= r),
+		# 		x.trail, init=false)),
+		# 	s)
+		snakes = Set(Snake[])
+		total = Set(s)
+		for k=1:length(i)
+			n = filter(x -> begin
+					for j=1:length(x.trail)
+						all(abs.((x.trail[j] .- i[k])) .<= r) &&
+						 return true
+					end
+					return false
+				end,
+				collect(total))
+			for x in n
+				pop!(total, x)
+			end
+			snakes = union(snakes, n)
+			isempty(total) && break
+		end
+		return collect(snakes)
 	end
+
 	R = filter(alive, s.snakes)
 	R = filter(x -> id(x) != i, R)
-	R = within(R, head(s.snakes[i]), 2)
+	R = within(R, s.snakes[i].trail, 2)
+
 
 	moves = []
 	for i2=1:length(m)
 		x = m[i2]
 		h = head(s.snakes[i]) .+ x
-		r = within(R, h, 1)
+		# r = within(R, h, 1)
+		r = R
+		# @show r
 		# @show head.(r), h
 		if length(r) > 1 || isempty(r)
 			# too many local snakes
@@ -195,6 +225,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 
 			p = pipe(SeqKiller{i,x}, s, a)
 			n = p(DIRECTIONS)
+			# @show n
 			l = Dict(ntuple(
 				j -> j == i ?
 					j=> x :
@@ -212,7 +243,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 	return moves
 end
 
-function lookat(T::SeqLocalSearch, s::SType, i::Int)
+function lookat(T::SeqLocalSearch{N}, s::SType, i::Int) where N
 	seqlocalmoves(s, i, basic(s, i))
 end
 
@@ -221,7 +252,7 @@ end
 # ==============================================================
 
 # follow all the guiding staffs
-# Use as: LightSpace{NStaff{Tuple{Staff{FoodChase,2},Staff{SpaceChase,2}}}}
+# Use as: Minimax{NStaff{Tuple{Staff{FoodChase,2},Staff{SpaceChase,2}}}}
 # not useful by itself
 struct NStaff{A <: Tuple} <: AbstractTorch end
 
@@ -265,4 +296,4 @@ function lookat(::Intersect{A,N}, s::SType, i::Int) where A <: Tuple where N
 end
 
 Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)
-Base.intersect(x, N::Int) = LightSpace{Intersect{Tuple{x...},N}}
+Base.intersect(x, N::Int) = Minimax{Intersect{Tuple{x...},N}}

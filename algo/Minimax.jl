@@ -1,18 +1,18 @@
 # ==============================================================
-#                          LightSpace
+#                          Minimax
 # ==============================================================
 
 # Complete treesearch upto level M with CandleLight as torch
-struct LightSpace{T <: AbstractTorch} <: AbstractAlgo end
+struct Minimax{T <: AbstractTorch} <: AbstractAlgo end
 
-lightspace(N=1) = LightSpace{CandleLight{N}}
-torch(l::Type{LightSpace{T}}) where T = T()
+minimax(N=1) = Minimax{CandleLight{N}}
+torch(l::Type{Minimax{T}}) where T = T()
 
 function statevalue(fr::Frame, i::Int)
 	h = healthvalue(fr, i)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
-	min(spacevalue(fr, i), h)
+	min(spacevalue(fr, i), h) + lengthvalue(fr, i)
 end
 function lengthvalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
@@ -112,7 +112,7 @@ function spacelook(T, s::SType, i::Int; f=minmaxreduce)
 	map(y -> y[1], q)
 end
 
-function pipe(algo::Type{LightSpace{M}}, s::SType, i::Int) where M
+function pipe(algo::Type{Minimax{M}}, s::SType, i::Int) where M
 	return DIR -> begin
 		K = spacelook(algo, s, i)
 		f = flow(closestfood(s, i))
