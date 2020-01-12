@@ -263,7 +263,11 @@ function removetail!(b::Board, snake::Snake)
         cell = b.cells[x, y]
         cell.snakes = filter(x -> x != id(snake), cell.snakes)
     end
+end
 
+function addtail!(b::Board, snake::Snake)
+    t = tail(snake)
+    pushfirst!(snake.trail, t)
 end
 
 function pick_cells(f, cells, n, delete_neighbours=false)
@@ -281,7 +285,10 @@ end
 
 function initial_positions(snakes::AbstractArray{Snake}, cells)
     pick_cells(cells, length(snakes), true) do cell, i
-        @inbounds push!(snakes[i], cell)
+        @inbounds s = snakes[i]
+        push!(s, cell)
+        push!(s.trail, indices(cell)) # 3 body parts
+        push!(s.trail, indices(cell))
     end
 end
 
@@ -412,19 +419,18 @@ function move(board::Board, moves)
             continue
         end
 
+        removetail!(board, s)
+
         if caneat(board, s)
             health(s, SNAKE_MAX_HEALTH)
-        else
-            # allow snake to grow to a length of 3 cells
-            if length(s) > 3
-                removetail!(board, s)
-            end
-
-            if health(s) <= 0
-                # snake died out of starvation :(
-                kill!(board, s, :STARVATION)
-            end
+            addtail!(board, s)
         end
+
+        if health(s) <= 0
+            # snake died out of starvation :(
+            kill!(board, s, :STARVATION)
+        end
+
     end
     board.food = removefood(board, food)
 
