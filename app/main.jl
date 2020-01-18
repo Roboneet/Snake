@@ -86,7 +86,7 @@ function firstcall()
 end
 
 function start(req)
-    JSON.json((color="#ffe562",))
+    JSON.json((color="#28363a",))
 end
 
 @app sankeserver = (
@@ -98,6 +98,7 @@ end
    page("/:s/ping", respond("ok")),
    page("/:s/end", foo),
    page("/test/intersect/:n/move", test_intersect),
+   page("/test/intersect/:n/start", start),
    Mux.notfound())
 
 firstcall()
