@@ -45,7 +45,7 @@ struct FoodChase <: AbstractAlgo end
 pipe(algo::Type{FoodChase}, s::SType, i::Int) = flow(canmove(s, i)..., closestfood(s, i))
 
 function closestfood(s::SType, i::Int)
-	c = collect(s[:food])
+	c = collect(s.food)
 	isempty(c) && return identity
 	return y -> astar(cells(s), head(s.snakes[i]), c, y)
 end
@@ -64,7 +64,7 @@ function stab(s::SType, i::Int, t::Int)
 	snakes = s.snakes
 	!alive(snakes[t]) && return identity
 
-	h, w = s.height, s.width
+	h, w = height(s), width(s)
 	I = head(snakes[i])
 	cls = cells(s)
 	c, d = floodfill(s, i)
@@ -74,7 +74,7 @@ function stab(s::SType, i::Int, t::Int)
 		map(x -> x .+ I, y))))
 
 	return y -> begin
-		safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s[:snakes]), y)
+		safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s.snakes), y)
 		# safe = y
 		# @show safe
 		isempty(safe) && return []

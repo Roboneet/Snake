@@ -11,7 +11,7 @@ struct Frame
 end
 turn(fr::Frame) = fr.no
 movestype(st) = NTuple{length(st.snakes),NTuple{2,Int}}
-Frame(state::SType, prev) = Frame(state[:turn], copystate(state),
+Frame(state::SType, prev) = Frame(state.turn, copystate(state),
  	Dict(), prev)
 
 function determine_width(headers, rows)
@@ -70,7 +70,7 @@ end
 function Base.show(io::IO, fr::Frame)
 	println(io, "Turn $(turn(fr))")
 	Base.show(io, Board(fr.state))
-	snks = fr.state[:snakes]
+	snks = fr.state.snakes
 	headers = ["ID", "Length", "Health"]
 	rows = map(x ->
 		string.([id(x), length(x),

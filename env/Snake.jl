@@ -18,8 +18,26 @@ mutable struct Snake
     death_reason::Union{Symbol,Nothing}
 end
 
-const SType = NamedTuple{(:height, :width, :food, :snakes, :ns, :turn, :mode),
-    Tuple{Int64,Int64,Array{Tuple{Int,Int},1},Array{Snake,1},Int64,Int64,Symbol}}
+struct Config
+    height::Int
+    width::Int
+    mode::Symbol
+end
+
+struct SType
+    config::Config
+    food::Array{Tuple{Int,Int},1}
+    snakes::Array{Snake,1}
+    ns::Int64
+    turn::Int64
+end
+
+mode(c::Config) = c.mode
+height(c::Config) = c.height
+width(c::Config) = c.width
+mode(st::SType) = mode(st.config)
+height(st::SType) = height(st.config)
+width(st::SType) = width(st.config)
 
 function Base.deepcopy_internal(t::Snake, d::IdDict)
     d[t] = Snake(t.id, copy(t.trail), t.health,
@@ -47,8 +65,10 @@ mutable struct Game
     turn
     foodtime
     ns
-    mode::Symbol
+    config::Config
 end
+
+mode(g::Game) = mode(g.config)
 
 mutable struct SnakeEnv
     game::Game
@@ -62,8 +82,8 @@ SnakeEnv(size::Tuple{Int,Int}, n::Int) =
 SnakeEnv(st::SType) = SnakeEnv(Game(st))
 
 done(env::SnakeEnv) = done(env.game)
-done(g::Game) = done(g.mode, g.ns)
-done(st::SType) = done(st.mode, st.ns)
+done(g::Game) = done(g.config.mode, g.ns)
+done(st::SType) = done(mode(st), st.ns)
 done(mode::Symbol, ns::Int) = mode == MULTI_PLAYER_MODE ? ns == 1 : ns == 0
 
 state(env::SnakeEnv) = gamestate(env.game)
@@ -90,7 +110,7 @@ end
 function reset!(env::SnakeEnv)
     g = env.game
     st = gamestate(g)
-    env.game = Game((st[:height], st[:width],), length(snakes(g)))
+    env.game = Game((height(st), width(st),), length(snakes(g)))
     return env
 end
 
@@ -127,16 +147,16 @@ function Base.isequal(s::Snake, w::Snake)
 end
 
 function Board(state::SType)
-    snakes = deepcopy.(state[:snakes])
-    food = copy(state[:food])
-    c = cells(state[:height], state[:width], snakes, food)
+    snakes = deepcopy.(state.snakes)
+    food = copy(state.food)
+    c = cells(height(state), width(state), snakes, food)
     return Board(c, snakes, food)
 end
 
-function cells(state)
-    snakes = deepcopy.(state[:snakes])
-    food = copy(state[:food])
-    return cells(state[:height], state[:width], snakes, food)
+function cells(state::SType)
+    snakes = deepcopy.(state.snakes)
+    food = copy(state.food)
+    return cells(height(state), width(state), snakes, food)
 end
 
 function cells(r, c)
@@ -153,7 +173,7 @@ function cells(r, c, S, food)
         snake = S[j]
         !snake.alive && continue
         for i in snake.trail
-            cell = cls[i...]
+            cell = cls[i[1], i[2]]
             if !in(id(snake), snakes(cell))
                 push!(snakes(cell), id(snake))
             end
@@ -182,31 +202,32 @@ function Board(size, n)
 end
 
 done(b::Board) = (length(filter(alive, b.snakes)) <= 1)
-Game(size, n) = Game(Board(size, n))
-function Game(b::Board, t=1, mode=single_or_multi(length(b.snakes)))
-    Game(b, t, foodtime(t), count(alive.(b.snakes)), mode)
+Game(size, n) = Game(Board(size, n), Config(size..., single_or_multi(n)))
+function Game(b::Board, c::Config, t=1)
+    Game(b, t, foodtime(t), count(alive.(b.snakes)), c)
 end
 
 function gamestate(g::Game)
     b = g.board
-    r, c = size(b.cells)
-    return (height=r, width=r,
-        food=b.food, snakes=b.snakes, ns=g.ns, turn=g.turn, mode=g.mode)
+    return SType(g.config,
+        b.food, b.snakes,
+        g.ns, g.turn)
 end
 
 # peak performance...
 function copystate(st::SType)
-    return (height=st.height, width=st.width,
-        food=copy(st.food), snakes=deepcopy.(st.snakes),
-        ns=st.ns, turn=st.turn, mode=st.mode)
+    return SType(st.config,
+        copy(st.food),
+        deepcopy.(st.snakes),
+        st.ns, st.turn)
 end
 
 function Game(state::SType)
-    snakes = deepcopy.(state[:snakes])
-    food = copy(state[:food])
-    c = cells(state[:height], state[:width], snakes, food)
+    snakes = deepcopy.(state.snakes)
+    food = copy(state.food)
+    c = cells(height(state), width(state), snakes, food)
     b = Board(c, snakes, food)
-    return Game(b, state[:turn], state[:mode])
+    return Game(b, state.config, state.turn)
 end
 
 function pick_cell!(cells::Set{Cell})
@@ -306,7 +327,8 @@ function Base.show(io::IO, b::Board)
     cells = b.cells
     showcells(io, cells)
 end
-showcells(io, s::SType) = showcells(io, cells(s[:height], s[:width], s[:snakes], s[:food]))
+showcells(io, s::SType) = showcells(io,
+    cells(height(s), width(s), s.snakes, s.food))
 showcells(cells) = showcells(stdout, cells)
 
 
@@ -382,7 +404,7 @@ function step!(g::Game, moves)
     move(board, moves)
 
     g.turn += 1
-    if g.mode == MULTI_PLAYER_MODE
+    if mode(g) == MULTI_PLAYER_MODE
         if g.turn >= g.foodtime
             a = length(filter(alive, board.snakes))
             n = ceil(Int, a/2)

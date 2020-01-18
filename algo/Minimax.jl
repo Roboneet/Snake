@@ -30,7 +30,7 @@ end
 function listclusters(s::SType, i::Int,
 	c::Array{T,2}, d::Dict{T,Int}) where T
 	I = head(s.snakes[i])
-	n = neighbours(I, s[:height], s[:width])
+	n = neighbours(I, height(s), width(s))
 	if length(s.snakes[i].trail) != 1
 		J = s.snakes[i].trail[end - 1]
 		n = filter(x -> x != J, n) # not on snake

@@ -71,7 +71,7 @@ end
 function foo(req)
     st, me = extract(JSON.parse(String(req[:data])))
     io = IOBuffer()
-    println(io, st[:turn])
+    println(io, st.turn)
     showcells(io, st)
     println(String(take!(io)))
     return "ok"

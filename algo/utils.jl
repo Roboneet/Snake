@@ -27,8 +27,8 @@ function extract(params::Dict)
         end
         push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
     end
-    return (height=height, width=width, food=food,
-        snakes=snakes, ns=length(snakes), turn=params["turn"], mode=MULTI_PLAYER_MODE), me
+    return SType(Config(height, width, MULTI_PLAYER_MODE), food,
+        snakes, length(snakes), params["turn"]), me
 end
 
 
@@ -231,41 +231,41 @@ function biggercluster(I, clusters, cdict)
 end
 
 function directionpipe(s, i, t)
-	snake = s[:snakes][i]
-	food = collect(s[:food])
+	snake = s.snakes[i]
+	food = collect(s.food)
 	I = head(snake)
-	r, c = s[:height], s[:width]
+	r, c = height(s), width(s)
 
-	cls = cells(r, c, s[:snakes], food)
+	cls = cells(r, c, s.snakes, food)
 	directionpipe(s, i, cls, I, t != nothing)
 end
 
 function canmove(s::SType, i::Int, I, cls)
 	!alive(s.snakes[i]) && return ((y) -> [(0, 0)],)
-	return choose(x -> in_bounds((I .+ x)..., s[:height], s[:width])),
-		choose(x -> freecell(cls[(I .+ x)...], cls, s[:snakes]))
+	return choose(x -> in_bounds((I .+ x)..., height(s), width(s))),
+		choose(x -> freecell(cls[(I .+ x)...], cls, s.snakes))
 end
 
 function canmove(s::SType, i)
-	I = head(s[:snakes][i])
+	I = head(s.snakes[i])
 	cls = cells(s)
 	return canmove(s, i, I, cls)
 end
 
 function directionpipe(s::SType, i::Int, cls, I, clusterify=true)
-	snake = s[:snakes][i]
+	snake = s.snakes[i]
 	clusters, cdict = floodfill(cls)
 	return (flow(canmove(s, i, I, cls)...,
-		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s[:snakes])),
+		choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s.snakes)),
 		through(clusterify, biggercluster(I, clusters, cdict)),
-		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s[:snakes]))) # may return 0 elements
+		choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s.snakes))) # may return 0 elements
 	)(DIRECTIONS)
 end
 
 astar(s::SType, i::Int, t) = astar(s, i, t, directionpipe(s, i))
 
 function astar(s::SType, i::Int, t, dir; kwargs...)
-	snake = s[:snakes][i]
+	snake = s.snakes[i]
 	!snake.alive && return 0
 
 	I = head(snake)
@@ -337,11 +337,11 @@ function floodfill!(cells, I, J, z, cnt)
 end
 
 function assign(st)
-	food = collect(st[:food])
+	food = collect(st.food)
 
-	allsnakes = collect(st[:snakes])
+	allsnakes = collect(st.snakes)
 	N = length(allsnakes)
-	cls = cells(st[:height], st[:width], allsnakes, food)
+	cls = cells(height(st), width(st), allsnakes, food)
 
 	snakes = (1:N)[alive.(allsnakes)]
 	food_snake = zeros(length(food), length(snakes))
