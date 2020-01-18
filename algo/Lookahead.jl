@@ -165,43 +165,36 @@ struct SeqLocalSearch{N} <: AbstractTorch end
 
 sls(N=4) = Minimax{SeqLocalSearch{N}}
 
+function within(s, i, r)
+	snakes = Set(Snake[])
+	total = Set(s)
+	for k=1:length(i)
+		n = filter(x -> begin
+				for j=1:length(x.trail)
+					all(abs.((x.trail[j] .- i[k])) .<= r) &&
+					 return true
+				end
+				return false
+			end,
+			collect(total))
+		for x in n
+			pop!(total, x)
+		end
+		snakes = union(snakes, n)
+		isempty(total) && break
+	end
+	return collect(snakes)
+end
+
 function seqlocalmoves(s::SType, i::Int, m)
 	# search all moves when a snake is nearby
 	# to avoid any false hopes
 	N = length(s.snakes)
 	cls = cells(s)
-	function within(s, i, r)
-		# any body part within reach
-		# filter(x ->
-		# 	reduce((acc, y) ->
-		# 		acc || all(abs.((y .- i)) .<= r),
-		# 		x.trail, init=false)),
-		# 	s)
-		snakes = Set(Snake[])
-		total = Set(s)
-		for k=1:length(i)
-			n = filter(x -> begin
-					for j=1:length(x.trail)
-						all(abs.((x.trail[j] .- i[k])) .<= r) &&
-						 return true
-					end
-					return false
-				end,
-				collect(total))
-			for x in n
-				pop!(total, x)
-			end
-			snakes = union(snakes, n)
-			isempty(total) && break
-		end
-		return collect(snakes)
-	end
 
 	R = filter(alive, s.snakes)
 	R = filter(x -> id(x) != i, R)
 	R = within(R, s.snakes[i].trail, 2)
-
-
 	moves = []
 	for i2=1:length(m)
 		x = m[i2]
@@ -219,21 +212,19 @@ function seqlocalmoves(s::SType, i::Int, m)
 			# @show nt
 			push!(moves, nt)
 		else
-			# @show "local", r
 			# try all deadly moves
 			a = id(r[1])
-
 			p = pipe(SeqKiller{i,x}, s, a)
 			n = p(DIRECTIONS)
 			# @show n
 			l = Dict(ntuple(
 				j -> j == i ?
 					j=> x :
-					j=> pipe(Killer{i}, s, j)(DIRECTIONS),
+					j=> findmove(Killer{i}, s, j),
 				N)...)
 			for j=1:length(n)
 				nt = ntuple(k -> k == i ? x :
-					(k == a ? n[j] : rand(l[k])),
+					(k == a ? n[j] : l[k]),
 				N)
 
 				push!(moves, nt)
