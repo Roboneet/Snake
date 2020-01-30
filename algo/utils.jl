@@ -1,35 +1,5 @@
 using DataStructures
 
-xy(k) = (k["y"] + 1,k["x"] + 1)
-function extract(params::Dict)
-    board_p = params["board"]
-    height = board_p["height"]
-    width = board_p["width"]
-	if isempty(board_p["food"])
-		food = Tuple{Int,Int}[]
-	else
-    	food = xy.(board_p["food"])
-	end
-    snakes = Snake[]
-    me = 1
-    for i=1:length(board_p["snakes"])
-        u = board_p["snakes"][i]
-        if u["id"] === params["you"]["id"]
-            me = i
-        end
-        trail = reverse(collect(xy.(u["body"])))
-        trail = map(p -> in_bounds(p..., height, width) ?
-                    p : nothing, trail)
-        if length(trail) > 1
-            direction = trail[end] .- trail[end - 1]
-        else
-            direction = nothing
-        end
-        push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
-    end
-    return SType(Config(height, width, MULTI_PLAYER_MODE), food,
-        snakes, length(snakes), params["turn"]), me
-end
 
 
 # prefer moves that could eliminate competition

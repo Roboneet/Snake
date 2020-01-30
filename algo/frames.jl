@@ -10,7 +10,6 @@ struct Frame
     prev
 end
 turn(fr::Frame) = fr.no
-movestype(st) = NTuple{length(st.snakes),NTuple{2,Int}}
 Frame(state::SType, prev) = Frame(state.turn, copystate(state),
  	Dict(), prev)
 
