@@ -348,12 +348,12 @@ LEGENDS = Dict(
 
 cellvalue(io, x...) = print(io, LEGENDS[:empty])
 cellvalue(io, x::Cell) = print(io, x.value)
-const SNAKE_COLORS = (:red, :dark_gray, :blue, :cyan,
-    :green, :light_gray, :light_red, :light_green,
+SNAKE_COLORS = (:red, :dark_gray, (33, 118, 208), (95, 38, 156),
+    (11, 105, 117), :light_gray, :light_red, :light_green,
     :light_yellow, :light_blue, :light_magenta, :light_cyan, :yellow)
-const BKG_COLOR = :black
-const FKG_COLOR = :white
-const FOOD_COLOR = :magenta
+BKG_COLOR = (173, 206, 214)
+FKG_COLOR = :white
+FOOD_COLOR = (109, 22, 130)
 
 function showcell(io, cell)
     if cell.value != nothing
