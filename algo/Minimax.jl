@@ -12,11 +12,16 @@ function statevalue(fr::Frame, i::Int)
 	h = healthvalue(fr, i)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
-	min(spacevalue(fr, i), h) + lengthvalue(fr, i)
+	min(spacevalue(fr, i), h) + longervalue(fr, i)
 end
 function lengthvalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
 	return length(fr.state.snakes[i])
+end
+# comparative length value
+function longervalue(fr::Frame, i::Int)
+	!alive(fr.state.snakes[i]) && return 0
+	return lengthvalue(fr, i) - maximum(map(alive, fr.state.snakes))
 end
 function healthvalue(fr::Frame, i::Int; α=1.0)
 	!alive(fr.state.snakes[i]) && return 0
