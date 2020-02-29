@@ -30,7 +30,7 @@ function foo(req)
 end
 
 function start(req)
-    JSON.json((color="#28363a",))
+    JSON.json((color="#8752ef",))
 end
 
 function test_store(req)

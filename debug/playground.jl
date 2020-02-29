@@ -1,4 +1,5 @@
-include("algo.jl")
+include("../algo/algo.jl")
+include("utils.jl")
 using Statistics
 
 DEFAULT_BOARD_SIZE = (10, 10)
