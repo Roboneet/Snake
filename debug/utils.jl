@@ -126,30 +126,62 @@ function nlines(buf::IO)
 	return s, length(l) - 1
 end
 
+function clearline(out)
+	print(io, "\r\u1b[K\u1b[A")
+end
+
 function cls(out::IO, l::Int)
 	print(out, "\x1b[999D\x1b[$(l)A")
 end
 
 viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, x -> statevalue(x, i))
 viewtree(fr::Frame, i::Int=1) = viewtree(terminal, fr, x -> statevalue(x, i))
+
+struct Screen
+	terminal
+	lines
+	function Screen(terminal, lines)
+		term = s.terminal
+		enableRawMode(term)
+		print(term.out_stream, "\x1b[?25l")
+		new(terminal, lines)
+	end
+end
+
+function print(sc::Screen, s::String)
+	print(sc.terminal.out_stream, s)
+end
+
+readkey(sc::Screen) = readKey(sc.terminal.in_stream)
+
+function onkey(sc::Screen, f)
+	while true
+		c = readkey(sc)
+		f(c)
+	end
+end
+
+
+
 function viewtree(term::TTYTerminal, fr::Frame, f)
 	branches(fr) == 0 && error("single node")
-
-	enableRawMode(term)
-	print(term.out_stream, "\x1b[?25l")
 
 	buf = IOBuffer()
 	msg = ""
 	viewnode(buf, fr, f, 1, msg, 1)
 	s, l = nlines(buf)
-	print(terminal.out_stream, s)
+
+	screen = Screen(term, l)
+
+	print(screen, s)
+
 	k = fr
 	is = [1]
 	t = 1
 	nb = branches(k)
+
 	try
-        while true
-            c = readKey(term.in_stream)
+        onkey(screen, c -> begin
 
 			if c == 1001 # right arrow
 				# println(term.out_stream, "YAY")
@@ -192,7 +224,7 @@ function viewtree(term::TTYTerminal, fr::Frame, f)
 
 			cls(term.out_stream, l)
 			viewnode(terminal.out_stream, k, f, is[t], msg, t)
-		end
+		end)
 	finally
 		print(term.out_stream, "\x1b[?25h")
 	    disableRawMode(term)
