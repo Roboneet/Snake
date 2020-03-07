@@ -36,7 +36,7 @@ function extract(params::Dict)
     	food = xy.(board_p["food"])
 	end
     snakes = Snake[]
-    me = 1
+    me = -1
     for i=1:length(board_p["snakes"])
         u = board_p["snakes"][i]
         if u["id"] === params["you"]["id"]

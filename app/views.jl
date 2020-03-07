@@ -7,10 +7,9 @@ function move(req, wa=whichalgo)
     me = ex[:me]
     algo = wa(req)
     move = findmove(algo, st, me)
+    keep(ex[:gameid], algo, st, me, move)
     T = Dict((1, 0)=>"down", (-1, 0)=>"up", (0, 1)=>"right", (0, -1)=>"left")
     move = T[move]
-    # store in temp store
-    # store(ex[:gameid], algo, st, me, move)
     return JSON.json((move=move,))
 end
 
@@ -21,7 +20,7 @@ function foo(req)
     ex = extract(JSON.parse(String(req[:data])))
     st = ex[:state]
     # store in the db when /end is pinged
-    # store!(ex[:gameid], st, ex[:me])
+    keep(ex[:gameid], :end, st, ex[:me])
     io = IOBuffer()
     println(io, st.turn)
     showcells(io, st)

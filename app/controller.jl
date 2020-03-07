@@ -1,5 +1,5 @@
 include("utils.jl")
-# include("store.jl")
+include("store.jl")
 
 algoDict = Dict()
 algoDict["default"] = Grenade
