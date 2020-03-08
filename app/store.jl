@@ -30,13 +30,9 @@ value(s::Store, gameid::String, algo, state, me::Int) =
 
 function __keep__(k::T, args...) where T <: AbstractStore
     @async begin
-        println("connecting...")
         conn = connect(k)
-        println("writing...")
         set(conn, key(k, args...), value(k, args...))
-        println("written.")
         disconnect(conn)
-        println("disconnected.")
     end
 end
 
