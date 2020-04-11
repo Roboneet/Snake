@@ -25,16 +25,13 @@ function logger(f, req)
 end
 
 xy(k) = (k["y"] + 1,k["x"] + 1)
+
 function extract(params::Dict)
 	gameid = params["game"]["id"]
     board_p = params["board"]
     height = board_p["height"]
     width = board_p["width"]
-	if isempty(board_p["food"])
-		food = Tuple{Int,Int}[]
-	else
-    	food = xy.(board_p["food"])
-	end
+	food = extract_food(board_p["food"])
     snakes = Snake[]
     me = -1
     for i=1:length(board_p["snakes"])
@@ -42,16 +39,33 @@ function extract(params::Dict)
         if u["id"] === params["you"]["id"]
             me = i
         end
-        trail = reverse(collect(xy.(u["body"])))
-        trail = map(p -> in_bounds(p..., height, width) ?
-                    p : nothing, trail)
-        if length(trail) > 1
-            direction = trail[end] .- trail[end - 1]
-        else
-            direction = nothing
-        end
+        trail = extract_snake_trail(u["body"], height, width)
+		direction = extract_snake_direction(trail)
         push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
     end
     return (state=SType(Config(height, width, MULTI_PLAYER_MODE), food,
         snakes, length(snakes), params["turn"]), me=me, gameid=gameid)
 end
+
+function extract_food(f)
+	isempty(f) && return Tuple{Int,Int}[]
+    return xy.(f)
+end
+
+function extract_snake_trail(f, height, width)
+	trail = reverse(collect(xy.(f)))
+	return  map(p -> in_bounds(p..., height, width) ?
+				p : nothing, trail)
+end
+
+function extract_snake_direction(trail)
+	length(trail) > 1 && return trail[end] .- trail[end - 1]
+	return nothing
+end
+
+# Example Usage
+
+#	str = """
+#	       {"Turn":1,"Food":[{"X":4,"Y":2},{"X":7,"Y":8},{"X":4,"Y":5}],"Snakes":[{"ID":"gs_T66wftFQjpShvRYmVBSHjY7H","Name":"anna kondo","URL":"","Body":[{"X":1,"Y":4},{"X":1,"Y":5},{"X":1,"Y":5},{"X":1,"Y":5}],"Health":100,"Death":null,"Color":"#00FF00","HeadType":"smile","TailType":"small-rattle","Latency":"341","Shout":"I am a python snake!","Team":""},{"ID":"gs_FBvMc7jBwM48wdH8hxDcm7w3","Name":"Polka Dotted Goggles","URL":"","Body":[{"X":0,"Y":9},{"X":1,"Y":9},{"X":1,"Y":9}],"Health":99,"Death":null,"Color":"#8752ef","HeadType":"","TailType":"","Latency":"334","Shout":"","Team":""},{"ID":"gs_JyGrrkbghRj3r7HqYkbrdmFX","Name":"unapersona","URL":"","Body":[{"X":9,"Y":4},{"X":9,"Y":5},{"X":9,"Y":5}],"Health":99,"Death":null,"Color":"#16a085","HeadType":"pixel","TailType":"pixel","Latency":"465","Shout":"","Team":""},{"ID":"gs_GwgD7qvRG8VQ7hMc9xvVjvKT","Name":"Independent","URL":"","Body":[{"X":9,"Y":8},{"X":9,"Y":9},{"X":9,"Y":9}],"Health":99,"Death":null,"Color":"#00FF00","HeadType":"","TailType":"","Latency":"294","Shout":"","Team":""}]}
+#	       """
+#	WSParser(11, 11)(str) |> x -> Frame(x, nothing)

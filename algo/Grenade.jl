@@ -33,7 +33,6 @@ function __pipe__(algo::Type{T}, s::SType, i::Int; t=s.food, tailchase=true) whe
 
 		dir = flow(canmove(s, i, I, cls)...,
 			choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s.snakes)))(DIR)
-
 		# food = reachable(food, map(x -> I .+ x, dir), clusters)
 		# @show food
 		if health(snake) < SNAKE_MAX_HEALTH/3
