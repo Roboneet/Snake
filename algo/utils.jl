@@ -46,7 +46,7 @@ function willtailmove(cell::Cell, cells, snakeslist)
 	# nf = nearfood(cells[H...], cells)
 	# return !nf
 	# return length(snake) >= 3 && !fullhealth(snake) # has eaten ?
-	return snake.trail[end - 1] == snake.trail[end]
+	return snake.trail[2] != snake.trail[1]
 end
 
 
