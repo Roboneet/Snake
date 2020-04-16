@@ -75,18 +75,18 @@ function stab(s::SType, i::Int, t::Int)
 		map(x -> x .+ I, y))))
 
 	return y -> begin
-		safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s.snakes), y)
-		# safe = y
-		# @show safe
-		isempty(safe) && return []
-
 		canreach(I, J) = !isempty(intersect(nearby(I, safe), nearby(J, DIRECTIONS)))
 
+		safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s.snakes), y)
 		# go for the head if its reachable
 		# otherwise, follow tail
-		if canreach(I, head(snakes[t])) && length(snakes[i]) > length(snakes[t])
+		if canreach(I, head(snakes[t])) && length(snakes[i]) >= length(snakes[t])
 			target = head(snakes[t])
-			return astar(s, i, target, safe; head=true)
+			if isempty(safe)
+				return astar(s, i, target, y; head=true)
+			else
+				return astar(s, i, target, safe; head=true)
+			end
 		else
 			return safe
 		end
