@@ -12,7 +12,9 @@ function statevalue(fr::Frame, i::Int)
 	h = healthvalue(fr, i)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
-	min(spacevalue(fr, i), h) + longervalue(fr, i)
+
+	v = min(spacevalue(fr, i), h) + longervalue(fr, i)
+	return v
 end
 function lengthvalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
@@ -87,8 +89,7 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 
 	q = Dict{Tuple{Int,Int},Float64}()
 	for (k, v) in fr.children
-		# @show k
-		# @show k[i]
+
 		u, v = minmaxreduce(v, i, f)
 		if haskey(q, k[i])
 			q[k[i]] = min(q[k[i]], u + 1)
@@ -96,6 +97,7 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 			q[k[i]] = u + 1 # bonus point for being alive upto this depth
 		end
 	end
+	# @show q
 
 	maxpairs(q)
 end
@@ -110,7 +112,7 @@ function spacelook(T, s::SType, i::Int; f=minmaxreduce)
 	b = basic(s, i)
 	length(b) <= 1 && return b
 	fr = lookahead(T, s, i)
-	# treeview(fr)
+	# viewtree(fr, i)
 	# min - max value
 	S, q = f(fr, i)
 

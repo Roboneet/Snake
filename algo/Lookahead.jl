@@ -44,12 +44,18 @@ end
 function lookat(T::AbstractTorch, s::SType, i::Int)
 	N = length(s.snakes)
 	moves = map(j -> basic(s, j), 1:N)
-	m = length.(moves)
-	arr = [zeros(Int, length(m)) for i=1:prod(m)]
-	c = allcombos(m, arr, 1)
-	return [[moves[i][c[j][i]] for i=1:length(moves)] for j=1:length(c)]
+	c = allcombos(moves)
 end
 
+function allcombos(choices::AbstractArray)
+	c = allcombos(length.(choices))
+	return [[choices[i][c[j][i]] for i=1:length(choices)] for j=1:length(c)]
+end
+
+function allcombos(m::AbstractArray{Int,1})
+	arr = [zeros(Int, length(m)) for i=1:prod(m)]
+	allcombos(m, arr, 1)
+end
 function allcombos(m::AbstractArray{Int,1}, arr::T, n::Int) where T <: AbstractVector{<:AbstractVector{Int}}
 	length(m) < n && return arr
 	if length(m) == n
@@ -186,6 +192,23 @@ function within(s, i, r)
 	return collect(snakes)
 end
 
+# r = list of neighbours
+# x = specific move of our snake
+function seqlocalmoves(s::SType, i::Int, x, r)
+	# try all deadly moves
+	N = length(s.snakes)
+	as = id.(r)
+	aps = map(a -> a=>pipe(SeqKiller{i,x}, s, a), as)
+	ns = Dict(map(ap -> ap[1]=>(ap[2](DIRECTIONS)), aps))
+	l = map(j -> j == i ?
+			[x] :
+			j in as ?
+			ns[j] :
+			[findmove(Grenade, s, j)],
+		1:N)
+	return allcombos(l)
+end
+
 function seqlocalmoves(s::SType, i::Int, m)
 	# search all moves when a snake is nearby
 	# to avoid any false hopes
@@ -201,9 +224,8 @@ function seqlocalmoves(s::SType, i::Int, m)
 		h = head(s.snakes[i]) .+ x
 		# r = within(R, h, 1)
 		r = R
-		# @show r
 		# @show head.(r), h
-		if length(r) > 1 || isempty(r)
+		if length(r) > 2 || isempty(r)
 			# too many local snakes
 			# fallback to seq search
 			# or empty
@@ -212,23 +234,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 			# @show nt
 			push!(moves, nt)
 		else
-			# try all deadly moves
-			a = id(r[1])
-			p = pipe(SeqKiller{i,x}, s, a)
-			n = p(DIRECTIONS)
-			# @show n
-			l = Dict(ntuple(
-				j -> j == i ?
-					j=> x :
-					j=> findmove(Killer{i}, s, j),
-				N)...)
-			for j=1:length(n)
-				nt = ntuple(k -> k == i ? x :
-					(k == a ? n[j] : l[k]),
-				N)
-
-				push!(moves, nt)
-			end
+			push!(moves, seqlocalmoves(s, i, x, r)...)
 		end
 	end
 	return moves

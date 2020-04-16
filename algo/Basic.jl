@@ -12,7 +12,8 @@ function findmove(algo::Type{T}, s::SType, i::Int; kwargs...) where T <: Abstrac
 end
 
 pipe(algo::Type{Basic}, s::SType, i::Int) = flow(canmove(s, i)...)
-basic(s::SType, i::Int) = pipe(Basic, s, i)(DIRECTIONS)
+basic(s::SType, i::Int) = alive(s.snakes[i]) ? pipe(Basic, s, i)(DIRECTIONS) :
+	[(0, 0)]
 
 # ==============================================================
 #                          SpaceChase

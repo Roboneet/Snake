@@ -131,7 +131,9 @@ function cls(out::IO, l::Int)
 end
 
 viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, x -> statevalue(x, i))
-viewtree(fr::Frame, i::Int=1) = viewtree(terminal, fr, x -> statevalue(x, i))
+function viewtree(fr::Frame, i::Int=1)
+	viewtree(terminal, fr, x -> statevalue(x, i))
+end
 function viewtree(term::TTYTerminal, fr::Frame, f)
 	branches(fr) == 0 && error("single node")
 
@@ -189,7 +191,6 @@ function viewtree(term::TTYTerminal, fr::Frame, f)
 			else
 				# eee
 			end
-
 			cls(term.out_stream, l)
 			viewnode(terminal.out_stream, k, f, is[t], msg, t)
 		end
