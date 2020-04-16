@@ -13,25 +13,54 @@ function statevalue(fr::Frame, i::Int)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
 
-	v = min(spacevalue(fr, i), h) + longervalue(fr, i)
+	v = min(spacevalue(fr, i), h) +
+		socialdistance(fr, i) +
+		longervalue(fr, i)
+
 	return v
 end
 function lengthvalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
 	return length(fr.state.snakes[i])
 end
+
 # comparative length value
 function longervalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
-	p = maximum(filter(alive, fr.state.snakes)) |> length
-	return lengthvalue(fr, i) - p
+	S = filter(x -> id(x) != i,
+		filter(alive, fr.state.snakes))
+	isempty(S) && return 1
+	p = maximum(x -> length(S), S)
+	return lengthvalue(fr, i) > p ? 1 : 0
 end
 
-# function socialdistance(fr::Frame, i::Int)
-# 	!alive(fr.state.snakes[i]) && return 0
-# 	# consider only larger snakes
-#
-# end
+# maintain social distance
+function socialdistance(fr::Frame, i::Int)
+	me = fr.state.snakes[i]
+	!alive(me) && return 0
+	config = fr.state.config
+	# consider only larger snakes
+	bigS = filter(x -> length(x) >= length(me),
+		filter(x -> id(x) != i,
+		filter(alive, fr.state.snakes)))
+	max_value = config.height + config.width # not really
+
+	isempty(bigS) && return max_value
+
+	dm = distancematrix(fr.state, i, true)
+	# display(dm)
+	# @show bigS
+	# display(dm)
+	d = map(x -> dm[head(x)...], bigS)
+	# @show d
+
+	v = minimum(d)
+	# @show v
+	V = max(v, 0)
+
+	# @show V
+	return V
+end
 
 function healthvalue(fr::Frame, i::Int; α=1.0)
 	!alive(fr.state.snakes[i]) && return 0

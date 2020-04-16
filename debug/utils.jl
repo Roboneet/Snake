@@ -198,7 +198,7 @@ function viewtree(term::TTYTerminal, fr::Frame, f)
 		print(term.out_stream, "\x1b[?25h")
 	    disableRawMode(term)
 	end
-
+	return k
 end
 
 function viewgame(term::TTYTerminal, fr::Frame, f)
@@ -264,6 +264,7 @@ function viewgame(term::TTYTerminal, fr::Frame, f)
 		print(term.out_stream, "\x1b[?25h")
 	    disableRawMode(term)
 	end
+	return k
 end
 
 

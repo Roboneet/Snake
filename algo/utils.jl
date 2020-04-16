@@ -393,8 +393,13 @@ function matrix(c, S=[], followtails=true; default::T=-1.0) where T
 	# end
 	return m
 end
-
-function distancematrix(c, src::T, m, maxsteps=SNAKE_MAX_HEALTH) where T <: Tuple{Int,Int}
+function distancematrix(s::SType, i::Int, heads=false)
+	cls = cells(s)
+	init = matrix(cls, s.snakes)
+	sh = heads ? head.(s.snakes) : nothing
+	distancematrix(cls, head(s.snakes[i]), init, health(s.snakes[i]), sh)
+end
+function distancematrix(c, src::T, m, maxsteps=SNAKE_MAX_HEALTH, heads=nothing) where T <: Tuple{Int,Int}
 	r, ci = size(c)
 	q = Queue{T}()
 	enqueue!(q, src)
@@ -421,6 +426,18 @@ function distancematrix(c, src::T, m, maxsteps=SNAKE_MAX_HEALTH) where T <: Tupl
 			end
 		end
 	end
+	if heads != nothing
+		for h in heads
+			N = neighbours(h, r, ci)
+			M = filter(x -> x != -1,
+				map(n -> m[n...], N))
+			isempty(M) && continue
+			v = minimum(M) + 1
+			v > maxsteps && continue
+			m[h...] = v
+		end
+	end
+
 	@inbounds m[src...] = maxl
 	# for i=1:r, j=1:ci
 	# 	if isa(m[i, j], Tailer)
