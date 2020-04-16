@@ -23,8 +23,16 @@ end
 # comparative length value
 function longervalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
-	return lengthvalue(fr, i) - maximum(map(alive, fr.state.snakes))
+	p = maximum(filter(alive, fr.state.snakes)) |> length
+	return lengthvalue(fr, i) - p
 end
+
+# function socialdistance(fr::Frame, i::Int)
+# 	!alive(fr.state.snakes[i]) && return 0
+# 	# consider only larger snakes
+#
+# end
+
 function healthvalue(fr::Frame, i::Int; α=1.0)
 	!alive(fr.state.snakes[i]) && return 0
 	round(Int, health(fr.state.snakes[i])*α)

@@ -143,7 +143,7 @@ Snake(i) = Snake(i, [], SNAKE_MAX_HEALTH, true, nothing, nothing)
 foodtime(t) = t + rand(9:12)
 Board() = Board((8, 8))
 
-function Base.:<(s::Snake, w::Snake)
+function Base.isless(s::Snake, w::Snake)
     return length(s) < length(w)
 end
 
