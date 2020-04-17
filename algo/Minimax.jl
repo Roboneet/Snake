@@ -82,8 +82,10 @@ function my_peeps(s::SType, i::Int)
 
 	cls = cells(s)
 	filter(x -> begin
+		xn = filter(x -> x.ishead,
+			neighbours(cls[x...], cls))
 		Y = vcat(map(y -> y.snakes,
-			neighbours(cls[x...], cls))...) |> unique
+			xn)...) |> unique
 		isempty(Y) && error("my_peeps: That shouldn't have happened...")
 		length(Y) == 1 && return true
 		Z = Y[Y .!= i] # the other snakes
