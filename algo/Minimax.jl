@@ -13,9 +13,7 @@ function statevalue(fr::Frame, i::Int)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
 
-	v = min(spacevalue(fr, i), h) +
-		socialdistance(fr, i) +
-		longervalue(fr, i)
+	v = min(spacevalue(fr, i), h)
 
 	return v
 end
