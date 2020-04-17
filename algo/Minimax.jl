@@ -50,9 +50,12 @@ function socialdistance(fr::Frame, i::Int)
 	dm = distancematrix(fr.state, i, true)
 	# display(dm)
 	# @show bigS
-	# display(dm)
-	d = map(x -> dm[head(x)...], bigS)
+
+	d = filter( x -> x >= 0 && x < Inf,
+		map(x -> dm[head(x)...], bigS))
 	# @show d
+
+	isempty(d) && return max_value
 
 	v = minimum(d)
 	# @show v
@@ -71,14 +74,31 @@ function listclusters(s::SType, i::Int)
 	l = listclusters(s, i, c, d)
 	return c, d, l
 end
+
+function my_peeps(s::SType, i::Int)
+	I = head(s.snakes[i])
+	n = neighbours(I, height(s), width(s))
+
+	J = s.snakes[i].trail[end - 1]
+	n = filter(x -> x != J, n) # not behind snake head
+
+	cls = cells(s)
+	filter(x -> begin
+		Y = vcat(map(y -> y.snakes,
+			neighbours(cls[x...], cls))...) |> unique
+		isempty(Y) && error("my_peeps: That shouldn't have happened...")
+		length(Y) == 1 && return true
+		Z = Y[Y .!= i] # the other snakes
+		W = filter(z -> z >= s.snakes[i], s.snakes[Z])
+		return isempty(W)
+	end, n)
+end
+
 function listclusters(s::SType, i::Int,
 	c::Array{T,2}, d::Dict{T,Int}) where T
 	I = head(s.snakes[i])
-	n = neighbours(I, height(s), width(s))
-	if length(s.snakes[i].trail) != 1
-		J = s.snakes[i].trail[end - 1]
-		n = filter(x -> x != J, n) # not on snake
-	end
+	n = my_peeps(s, i)
+
 	U = unique(map(x -> c[x...], n))
 	filter(x -> x != c[I[1], I[2]], U)
 end
@@ -102,8 +122,7 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 	!alive(fr.state.snakes[i]) && return 0
 	# display(fr)
 	c, d, l = listclusters(fr.state, i)
-	# display(c)
-	# display(d)
+
 	ne = nempty(size(c), filter(alive, fr.state.snakes))
 	ne == 0 && return Inf
 	isempty(l) && return 0
@@ -128,6 +147,7 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 	for (k, v) in fr.children
 
 		u, v = minmaxreduce(v, i, f)
+		# @show k[i], u
 		if haskey(q, k[i])
 			q[k[i]] = min(q[k[i]], u + 1)
 		else

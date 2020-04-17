@@ -395,7 +395,7 @@ function matrix(c, S=[], followtails=true; default::T=-1.0) where T
 end
 function distancematrix(s::SType, i::Int, heads=false)
 	cls = cells(s)
-	init = matrix(cls, s.snakes)
+	init = matrix(cls, s.snakes; default=-1)
 	sh = heads ? head.(s.snakes) : nothing
 	distancematrix(cls, head(s.snakes[i]), init, health(s.snakes[i]), sh)
 end
@@ -404,7 +404,7 @@ function distancematrix(c, src::T, m, maxsteps=SNAKE_MAX_HEALTH, heads=nothing) 
 	q = Queue{T}()
 	enqueue!(q, src)
 	@inbounds m[src...] = 0.0
-	maxl = Inf
+	maxl = SNAKE_MAX_HEALTH + 1
 	@inbounds while !isempty(q)
 		g = dequeue!(q)
 		m[g...] >= maxsteps && continue

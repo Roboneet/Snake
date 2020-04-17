@@ -217,7 +217,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 
 	R = filter(alive, s.snakes)
 	R = filter(x -> id(x) != i, R)
-	R = within(R, s.snakes[i].trail, 2)
+	R = within(R, s.snakes[i].trail, 1)
 	moves = []
 	for i2=1:length(m)
 		x = m[i2]
