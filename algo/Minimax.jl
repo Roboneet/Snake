@@ -13,8 +13,7 @@ function statevalue(fr::Frame, i::Int)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
 
-	v = min(spacevalue(fr, i), h,
-		lengthvalue(fr, i))
+	v = min(spacevalue(fr, i), h)*lengthvalue(fr, i)
 
 	return v
 end
@@ -144,7 +143,7 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 	# display(fr.children)
 	# display(ch)
 
-	q = Dict{Tuple{Int,Int},Float64}()
+	q = Dict{Tuple{Int,Int},Int}()
 	for (k, v) in fr.children
 
 		u, v = minmaxreduce(v, i, f)
