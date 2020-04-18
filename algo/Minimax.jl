@@ -13,7 +13,7 @@ function statevalue(fr::Frame, i::Int)
 	# h - foodvalue(fr, i)
 	# + 0.1*h*foodvalue(fr, i)
 
-	v = min(spacevalue(fr, i), h)
+	v = min(spacevalue(fr, i), h) + lengthvalue(fr, i)
 
 	return v
 end
@@ -147,14 +147,12 @@ function minmaxreduce(fr::Frame, i::Int, f=statevalue)
 	for (k, v) in fr.children
 
 		u, v = minmaxreduce(v, i, f)
-		# @show k[i], u
 		if haskey(q, k[i])
 			q[k[i]] = min(q[k[i]], u + 1)
 		else
 			q[k[i]] = u + 1 # bonus point for being alive upto this depth
 		end
 	end
-	# @show q
 
 	maxpairs(q)
 end
