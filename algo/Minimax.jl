@@ -179,7 +179,21 @@ end
 function pipe(algo::Type{Minimax{M}}, s::SType, i::Int) where M
 	return DIR -> begin
 		K = spacelook(algo, s, i)
-		f = flow(closestfood(s, i))
+		f = flow(closestreachablefood(s, i))
 		m = f(K)
 	end
+end
+
+function closestreachablefood(s::SType, i::Int, f=listclusters)
+	food = collect(s.food)
+	isempty(food) && return identity
+	c, d, l = f(s, i)
+	rf = []
+	for i=1:length(food)
+		fo = food[i]
+		if c[fo[1], fo[2]] in l
+			push!(rf, fo)
+		end
+	end
+	return y -> astar(cells(s), head(s.snakes[i]), rf, y)
 end
