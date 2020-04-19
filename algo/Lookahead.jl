@@ -223,10 +223,10 @@ function seqlocalmoves(s::SType, i::Int, m)
 	for i2=1:length(m)
 		x = m[i2]
 		h = head(s.snakes[i]) .+ x
-		# r = within(R, h, 1)
-		r = R
+		r = within(R, h, 2)
+		# r = R
 		# @show head.(r), h
-		if length(r) > 2 || isempty(r)
+		if length(r) > 1 || isempty(r)
 			# too many local snakes
 			# fallback to seq search
 			# or empty
