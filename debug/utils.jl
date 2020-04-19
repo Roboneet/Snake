@@ -1,5 +1,8 @@
 # functions to read and traverse frames
 
+cls(io) = print(io, "\x1b[H\x1b[2J")
+cursor_top(io) = print(io, "\x1b[H")
+
 link(fr) = link(fr.prev, fr)
 link(pr::Nothing, fr) = nothing
 function link(pr, fr)
@@ -130,10 +133,12 @@ function cls(out::IO, l::Int)
 	print(out, "\x1b[999D\x1b[$(l)A")
 end
 
-viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, x -> statevalue(x, i))
-function viewtree(fr::Frame, i::Int=1)
-	viewtree(terminal, fr, x -> statevalue(x, i))
-end
+viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, (args...) -> "")
+viewgame(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
+	viewgame(terminal, fr, x -> statevalue(V, x, i))
+viewtree(fr::Frame, i::Int=1) = viewtree(terminal, fr, x -> "")
+viewtree(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
+	viewtree(terminal, fr, x -> statevalue(V, x, i))
 function viewtree(term::TTYTerminal, fr::Frame, f)
 	branches(fr) == 0 && error("single node")
 

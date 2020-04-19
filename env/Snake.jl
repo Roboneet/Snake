@@ -89,7 +89,7 @@ SnakeEnv(st::SType) = SnakeEnv(Game(st))
 done(env::SnakeEnv) = done(env.game)
 done(g::Game) = done(g.config.mode, g.ns)
 done(st::SType) = done(mode(st), st.ns)
-done(mode::Symbol, ns::Int) = mode == MULTI_PLAYER_MODE ? ns == 1 : ns == 0
+done(mode::Symbol, ns::Int) = mode == MULTI_PLAYER_MODE ? ns <= 1 : ns == 0
 
 state(env::SnakeEnv) = gamestate(env.game)
 state(env::SnakeEnv, st) = (env.game = Game(st))

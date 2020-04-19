@@ -46,17 +46,20 @@ winstats(algos; kwargs...) = winstats(algos, SnakeEnv(DEFAULT_BOARD_SIZE, length
 function winstats(algos, env; N::Int=100, progress=false)
 	wins = zeros(Int, length(algos))
 	for i=1:N
+		if progress
+			@info "Life $i "
+		end
 		play(algos, env)
 		sn = snakes(env.game)
 		k = sn[alive.(sn)]
 		if !isempty(k)
 			x = id(k[1])
 			wins[x] += 1
+			if progress
+				@show x
+			end
 		end
 		reset!(env)
-		if progress
-			@info "Life $i "
-		end
 	end
 	return wins
 end
@@ -65,10 +68,15 @@ function play(algos, env; verbose=false)
 	reset!(env)
 	N = Nsnakes(env)
 
+	if verbose
+		cls(stdout)
+	end
+
 	fr = Frame(state(env), nothing)
 	top = fr
 	while !done(env)
 		if verbose
+			cursor_top(stdout)
 			display(fr)
 		end
 		s = state(env)
@@ -86,6 +94,7 @@ function play(algos, env; verbose=false)
 		fr = child(fr, moves, Frame(s′, fr))
 	end
 	if verbose
+		cls(stdout)
 		display(fr)
 	end
 

@@ -69,27 +69,25 @@ function stab(s::SType, i::Int, t::Int)
 	I = head(snakes[i])
 	cls = cells(s)
 	c, d = floodfill(s, i)
-	nearby(I, y) = filter(x -> x != c[I...],
-		map(x -> c[x...],
-		filter(x -> in_bounds(x..., h, w),
-		map(x -> x .+ I, y))))
 
 	return y -> begin
-		canreach(I, J) = !isempty(intersect(nearby(I, safe), nearby(J, DIRECTIONS)))
+		k = indices.(neighbours(cls[head(snakes[t])...], cls))
+		K = filter(x -> (x .+ I) in k, y)
+		length(snakes[i]) >= length(snakes[t]) && !isempty(K) && return K
 
-		safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s.snakes), y)
+		canreach(I, J) = !isempty(intersect(nearby(I, safe), nearby(J, DIRECTIONS)))
 		# go for the head if its reachable
 		# otherwise, follow tail
-		if canreach(I, head(snakes[t])) && length(snakes[i]) >= length(snakes[t])
-			target = head(snakes[t])
-			if isempty(safe)
-				return astar(s, i, target, y; head=true)
-			else
-				return astar(s, i, target, safe; head=true)
-			end
-		else
+
+		target = head(snakes[t])
+		p = astar(s, i, target, y; head=true)
+ 
+		if isempty(p)
+			safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s.snakes), y)
 			return safe
 		end
+
+		return p
 	end
 end
 

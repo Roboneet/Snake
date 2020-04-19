@@ -54,13 +54,13 @@ end
 
 function extract_snake_trail(f, height, width)
 	trail = reverse(collect(xy.(f)))
-	return  map(p -> in_bounds(p..., height, width) ?
-				p : nothing, trail)
+	return trail
 end
 
 function extract_snake_direction(trail)
-	length(trail) > 1 && return trail[end] .- trail[end - 1]
-	return nothing
+	(trail[end] == nothing || trail[end - 1] == nothing) &&
+		return trail[end - 1] .- trail[end - 2]
+	return trail[end] .- trail[end - 1]
 end
 
 # Example Usage

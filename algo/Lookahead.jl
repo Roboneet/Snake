@@ -11,7 +11,7 @@ struct CandleLight{N} <: AbstractTorch end
 (c::CandleLight{N})(s::SType, i::Int, fr::Frame) where N = lookahead(c, s, i, N, fr)
 (c::CandleLight)(args...) = lookahead(c, args...)
 
-function lookahead(::Type{K}, s::SType, i::Int) where K <: AbstractAlgo
+function lookahead(::Type{K}, s::SType, i::Int) where K <: AbstractTorch
 	fr = Frame(s, nothing)
 	t = torch(K)
 	t(s, i, fr)
@@ -140,7 +140,7 @@ pipe(algo::Type{SeqKiller{T,M}}, s::SType, i::Int) where {T,M} =
 function seqkiller(s, j, i, x)
 	!alive(s.snakes[j]) && return (identity,)
 	h = head(s.snakes[i]) .+ x
-	k = length(s.snakes[j]) > length(s.snakes[i])
+	k = length(s.snakes[j]) >= length(s.snakes[i])
 
 	return k ? (choose(ele -> begin
 		# choose a surely killer move
@@ -169,7 +169,7 @@ struct SeqLocalSearch{N} <: AbstractTorch end
 (c::SeqLocalSearch{N})(s::SType, i::Int, fr::Frame) where N = lookahead(c, s, i, N, fr)
 (c::SeqLocalSearch{N})(args...) where N = lookahead(c, args...)
 
-sls(N=4) = Minimax{SeqLocalSearch{N}}
+sls(N=4) = TreeSearch{Minimax,JazzCop,SeqLocalSearch{N}}
 
 function within(s, i, r)
 	snakes = Set(Snake[])
@@ -217,7 +217,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 
 	R = filter(alive, s.snakes)
 	R = filter(x -> id(x) != i, R)
-	R = within(R, s.snakes[i].trail, 1)
+	R = within(R, s.snakes[i].trail, 2)
 	moves = []
 	for i2=1:length(m)
 		x = m[i2]
