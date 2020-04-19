@@ -134,7 +134,7 @@ struct SeqSearch <: AbstractTorch end
 
 struct SeqKiller{T,M} <: AbstractAlgo end
 pipe(algo::Type{SeqKiller{T,M}}, s::SType, i::Int) where {T,M} =
-	flow(pipe(Killer{T}, s, i), seqkiller(s, i, T, M)...)
+	flow(pipe(Basic, s, i), seqkiller(s, i, T, M)...)
 
 # wiser killer, because it knows what the target is going to do
 function seqkiller(s, j, i, x)
@@ -218,6 +218,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 	R = filter(alive, s.snakes)
 	R = filter(x -> id(x) != i, R)
 	R = within(R, s.snakes[i].trail, 2)
+	# @show id.(R)
 	moves = []
 	for i2=1:length(m)
 		x = m[i2]
@@ -237,6 +238,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 			push!(moves, seqlocalmoves(s, i, x, r)...)
 		end
 	end
+	# @show moves
 	return moves
 end
 

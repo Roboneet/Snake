@@ -10,9 +10,7 @@ function move(req, wa=whichalgo)
     if USE_REDIS
         keep(ex[:gameid], algo, st, me, move)
     end
-    T = Dict((1, 0)=>"down", (-1, 0)=>"up", (0, 1)=>"right", (0, -1)=>"left")
-    move = T[move]
-    return JSON.json((move=move,))
+    return JSON.json((move=eng(move),))
 end
 
 test_intersect(req) = move(req, (r) -> sls(parse(Int, r[:params][:n])))

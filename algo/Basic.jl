@@ -74,20 +74,7 @@ function stab(s::SType, i::Int, t::Int)
 		k = indices.(neighbours(cls[head(snakes[t])...], cls))
 		K = filter(x -> (x .+ I) in k, y)
 		length(snakes[i]) >= length(snakes[t]) && !isempty(K) && return K
-
-		canreach(I, J) = !isempty(intersect(nearby(I, safe), nearby(J, DIRECTIONS)))
-		# go for the head if its reachable
-		# otherwise, follow tail
-
-		target = head(snakes[t])
-		p = astar(s, i, target, y; head=true)
- 
-		if isempty(p)
-			safe = filter(x -> !nearbigsnake(cls[(I .+ x)...], snakes[i], cls, s.snakes), y)
-			return safe
-		end
-
-		return p
+		return y
 	end
 end
 

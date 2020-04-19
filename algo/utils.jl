@@ -1,6 +1,13 @@
 using DataStructures
 
-
+T = Dict((1, 0)=>"down", (-1, 0)=>"up",
+	(0, 1)=>"right", (0, -1)=>"left", (0, 0)=>"___")
+S = Dict((1, 0)=>"↓", (-1, 0)=>"↑",
+	(0, 1)=>"→", (0, -1)=>"←", (0, 0)=>"_")
+eng(x) = T[x]
+eng(x::AbstractArray) = eng.(x)
+sign(x) = S[x]
+sign(x::AbstractArray) = sign.(x)
 
 # prefer moves that could eliminate competition
 # avoid ones that could eliminate the snake
