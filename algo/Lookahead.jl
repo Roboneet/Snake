@@ -292,5 +292,5 @@ function lookat(::Intersect{A,N}, s::SType, i::Int) where A <: Tuple where N
 	seqlocalmoves(s, i, d)
 end
 
-Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)
-Base.intersect(x, N::Int) = Minimax{Intersect{Tuple{x...},N}}
+# Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)
+# Base.intersect(x, N::Int) = Minimax{Intersect{Tuple{x...},N}}

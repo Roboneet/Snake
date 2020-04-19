@@ -1,5 +1,5 @@
 function firstcall()
-    algos = [intersect((Basic,), 4), Grenade, Kettle, Cupcake, Grenade, DKiller]
+    algos = [Grenade, Kettle, Cupcake, Grenade]
     env = SnakeEnv((11,11), length(algos))
     s = state(env)
     moves = ntuple(x -> findmove(algos[x], s, x), length(algos))
