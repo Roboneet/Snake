@@ -1,5 +1,9 @@
 using DataStructures
 
+__cls__(io=stdout) = print(io, "\x1b[H\x1b[2J")
+cls(args...) = __cls__(args...)
+cursor_top(io) = print(io, "\x1b[H")
+
 T = Dict((1, 0)=>"down", (-1, 0)=>"up",
 	(0, 1)=>"right", (0, -1)=>"left", (0, 0)=>"___")
 S = Dict((1, 0)=>"↓", (-1, 0)=>"↑",
@@ -487,6 +491,23 @@ function reachableclusters(s::SType, i=nothing)
 	return reachableclusters(cls, s.snakes)
 end
 
+
+function colorarray(g, x = (-1, -1))
+	r, c = size(g)
+	bc = Crayon(background=:black)
+	df = Crayon(background=:default, foreground=:default)
+	io = IOBuffer()
+	num_rep = (x) -> lpad(x == -1 ? "" : "$(x) ", 3)
+	foreach( i -> begin
+		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : num_rep(g[i, y[1]])),
+			map(j -> g[i, j] == -1 ? (j, bc,) :
+			(j, Crayon(background=SNAKE_COLORS[g[i, j]],
+				foreground=:white),), 1:c))
+		println(io, df)
+		end, 1:r)
+	String(take!(io))
+end
+
 function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 	S = filter(alive, snks)
 	r, ci = size(cls)
@@ -502,6 +523,7 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 		N = neighbours(head(snake), r, ci)
 		foreach(N) do n
 			nx, ny = n[1], n[2]
+			init[nx, ny] != -1 && return
 			cell = cls[nx, ny]
 			hassnake(cell) && return
 			roots[cnt] = id(snake)
@@ -557,27 +579,9 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 				xn += 1
 			end
 		end
-		# display(exp)
-		# g = convert(Array{Any,2}, deepcopy(init))
-		# function colorarray(g)
-		# 	r, c = size(g)
-		# 	bc = Crayon(background=:black)
-		# 	df = Crayon(background=:default, foreground=:default)
-		# 	io = IOBuffer()
-		# 	foreach( i -> begin
-		# 		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : "   "),
-		# 			map(j -> g[i, j] == -1 ? (j, bc,) :
-		# 			(j, Crayon(background=SNAKE_COLORS[g[i, j]],
-		# 				foreground=:white),), 1:c))
-		# 		println(io, df)
-		# 		end, 1:r)
-		# 	String(take!(io))
-		# end
-		#
-		# print(colorarray(g))
-		# println()
-		# @show xn
-		# sleep(0.06)
+		# __cls__()
+		# println(colorarray(init, x))
+		# sleep(0.1)
 	end
 	# @show ni, r*ci
 	d = Dict{Int,Int}()

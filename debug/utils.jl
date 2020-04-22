@@ -1,8 +1,5 @@
 # functions to read and traverse frames
 
-cls(io) = print(io, "\x1b[H\x1b[2J")
-cursor_top(io) = print(io, "\x1b[H")
-
 link(fr) = link(fr.prev, fr)
 link(pr::Nothing, fr) = nothing
 function link(pr, fr)
