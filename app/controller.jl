@@ -21,6 +21,17 @@ function whichalgo(req)
     return algoDict[name]
 end
 
+function test(f)
+   return (req) -> begin
+      name = req[:params][:s]
+      if !haskey(algoDict, name)
+            algoDict[name] = eval(Meta.parse(name))
+            @show algoDict
+      end
+      f(req)
+   end
+end
+
 include("views.jl")
 
 @app sankeserver = (
@@ -31,7 +42,7 @@ include("views.jl")
    page("/:s/move", move),
    page("/:s/ping", respond("ok")),
    page("/:s/end", foo),
-   page("/test/intersect/:n/move", test_intersect),
-   page("/test/intersect/:n/start", start),
+   page("/test/:s/move", test(move)),
+   page("/test/:s/start", test(start)),
    page("/test/store/", test_store),
    Mux.notfound())
