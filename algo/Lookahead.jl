@@ -145,7 +145,7 @@ function seqkiller(s, j, i, x)
 	return k ? (choose(ele -> begin
 		# choose a surely killer move
 		(head(s.snakes[j]) .+ ele) == h
-	end),)  : (identity,)
+	end),)  : (safermove(s, j, i),)
 end
 
 function seqkillermoves(s::SType, i::Int, m)

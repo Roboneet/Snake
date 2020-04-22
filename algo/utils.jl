@@ -29,6 +29,11 @@ sign(x::AbstractArray) = sign.(x)
 # 	return moves[m]
 # end
 
+function nearsnake(st::SType, i::Int, cmp)
+	cls = cells(st)
+	c = cls[head(s.snakes[i])...]
+	nearsnake(c, s.snakes[i], cls, s.snakes, cmp)
+end
 function nearsnake(cell::Cell, snake::Snake, cells, snakeslist, cmp)
 	n = filter(x -> x.ishead, neighbours(cell, cells))
 

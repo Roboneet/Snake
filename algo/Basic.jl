@@ -61,6 +61,23 @@ struct Killer{T} <: AbstractAlgo end
 
 pipe(algo::Type{Killer{T}}, s::SType, i::Int) where T = flow(canmove(s, i)..., stab(s, i, T))
 
+
+safermove(s::SType, i::Int, t::Int) =
+	safermove(s, i, t, cells(s), head(s.snakes[i]))
+
+function safermove(s::SType, i::Int, t::Int, cls, I)
+	return y -> begin
+		if length(s.snakes[i]) < length(s.snakes[t])
+			# dont choose a sure death move if we can't kill the target
+			safe = filter(x -> !nearbigsnake(cls[(I .+ x)...],
+				s.snakes[i], cls, s.snakes),
+				y)
+			return safe
+		end
+		return y
+	end
+end
+
 function stab(s::SType, i::Int, t::Int)
 	snakes = s.snakes
 	!alive(snakes[t]) && return identity
@@ -68,13 +85,13 @@ function stab(s::SType, i::Int, t::Int)
 	h, w = height(s), width(s)
 	I = head(snakes[i])
 	cls = cells(s)
-	c, d = floodfill(s, i)
 
 	return y -> begin
 		k = indices.(neighbours(cls[head(snakes[t])...], cls))
 		K = filter(x -> (x .+ I) in k, y)
 		length(snakes[i]) >= length(snakes[t]) && !isempty(K) && return K
-		return y
+
+		return safermove(s, i, t, cls)(y)
 	end
 end
 
