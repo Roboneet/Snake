@@ -11,8 +11,6 @@ function move(req, wa=whichalgo)
         keep(ex[:gameid], algo, st, me, move)
     end
     k = eng(move)
-    @show k
-    display(Frame(st, nothing))
     return JSON.json((move=k,))
 end
 
