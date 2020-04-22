@@ -8,7 +8,7 @@ algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
 algoDict["wip"] = sls(4)
 algoDict["peepeepoopoo"] = Earthworm{4,Grenade,sls(2)}
-algoDict["antimatter"] = TreeSearch{NotBad,SpaceValue,SeqLocalSearch{2}}
+algoDict["antimatter"] = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
 
 function whichalgo(req)
     if haskey(req, :params)

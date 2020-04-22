@@ -513,6 +513,18 @@ function colorarray(g, x = (-1, -1))
 	String(take!(io))
 end
 
+
+# - exploration set
+# - roots of each cluster
+# - cluster id of each cluster
+# - cluster length of each cluster
+# - snakes
+# - cells
+
+
+# roots and cluster ids
+# A union find with a condition that cluster should
+# have same root ids inorder to be united as one cluster
 function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 	S = filter(alive, snks)
 	r, ci = size(cls)
@@ -523,6 +535,7 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 	roots = Dict{Int,Int}()
 	l = length(ss)
 	cnt = 1
+	# initial exploration set
 	@inbounds for i=l:-1:1
 		snake = ss[i]
 		N = neighbours(head(snake), r, ci)
@@ -555,6 +568,7 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 			clens[b] = clens[a] = clens[at]
 		end
 	end
+	# exploration
 	ni = 0
 	@inbounds while !isempty(exp)
 		ni += 1
@@ -589,6 +603,8 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 		# sleep(0.1)
 	end
 	# @show ni, r*ci
+
+	# final compilation
 	d = Dict{Int,Int}()
 	@inbounds for j=1:ci, i=1:r
 		c = init[i, j]

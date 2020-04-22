@@ -214,6 +214,19 @@ function value(::Type{HipHop}, fr::Frame, i::Int)
 end
 
 # ==================================================================
+#                         Punk
+# ==================================================================
+
+struct Punk <: AbstractValue end
+
+function value(::Type{Punk}, fr::Frame, i::Int)
+	l = value(LengthValue, fr, i)
+	s = value(SpaceValue, fr, i)
+
+	return s*l
+end
+
+# ==================================================================
 #                         ThreatValue
 # ==================================================================
 
