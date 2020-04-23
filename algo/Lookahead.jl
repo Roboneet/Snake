@@ -217,11 +217,19 @@ function seqlocalmoves(s::SType, i::Int, m)
 	N = length(s.snakes)
 	cls = cells(s)
 
-	R = filter(alive, s.snakes)
-	R = filter(x -> id(x) != i, R)
-	R = within(R, s.snakes[i].trail, 2)
-
+	S = filter(alive, s.snakes)
 	moves = []
+	S = filter(x -> id(x) != i, S)
+	if length(S) == 1
+		for i2=1:length(m)
+			x = m[i2]
+			push!(moves, seqlocalmoves(s, i, x, S)...)
+		end
+		return moves
+	end
+	R = within(S, s.snakes[i].trail, 2)
+
+
 	for i2=1:length(m)
 		x = m[i2]
 		h = head(s.snakes[i]) .+ x
