@@ -111,9 +111,15 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 	!alive(fr.state.snakes[i]) && return 0
 	# display(fr)
 	c, d, l = listclusters(fr.state, i)
+	st = fr.state
 
-	ne = nempty(size(c), filter(alive, fr.state.snakes))
-	ne == 0 && return Inf
+	ne = nempty(width(st), height(st), d)
+
+	if ne == 0
+		println(fr)
+		println(colorarray(c))
+
+	end
 	isempty(l) && return 0
 	pempty(x) = min(floor(Int, x*100/ne), cap)
 
@@ -123,44 +129,44 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 end
 
 function listclusters(s::SType, i::Int)
-	c, d = reachableclusters(s, i)
-	l = listclusters(s, i, c, d)
-	return c, d, l
+	c, d, r = reachableclusters(s, i)
+	return c, d, r[i]
 end
+#
+# function my_peeps(s::SType, i::Int)
+# 	I = head(s.snakes[i])
+# 	n = neighbours(I, height(s), width(s))
+#
+# 	J = s.snakes[i].trail[end - 1]
+# 	n = filter(x -> x != J, n) # not behind snake head
+#
+# 	cls = cells(s)
+# 	filter(x -> begin
+# 		xn = filter(x -> x.ishead,
+# 			neighbours(cls[x...], cls))
+# 		Y = vcat(map(y -> y.snakes,
+# 			xn)...) |> unique
+# 		isempty(Y) && error("my_peeps: That shouldn't have happened...")
+# 		length(Y) == 1 && return true
+# 		Z = Y[Y .!= i] # the other snakes
+# 		W = filter(z -> z >= s.snakes[i], s.snakes[Z])
+# 		return isempty(W)
+# 	end, n)
+# end
+#
+# function listclusters(s::SType, i::Int,
+# 	c::Array{T,2}, d::Dict{T,Int}) where T
+# 	I = head(s.snakes[i])
+# 	n = my_peeps(s, i)
+#
+# 	U = unique(map(x -> c[x...], n))
+# 	filter(x -> x != c[I[1], I[2]], U)
+# end
 
-function my_peeps(s::SType, i::Int)
-	I = head(s.snakes[i])
-	n = neighbours(I, height(s), width(s))
-
-	J = s.snakes[i].trail[end - 1]
-	n = filter(x -> x != J, n) # not behind snake head
-
-	cls = cells(s)
-	filter(x -> begin
-		xn = filter(x -> x.ishead,
-			neighbours(cls[x...], cls))
-		Y = vcat(map(y -> y.snakes,
-			xn)...) |> unique
-		isempty(Y) && error("my_peeps: That shouldn't have happened...")
-		length(Y) == 1 && return true
-		Z = Y[Y .!= i] # the other snakes
-		W = filter(z -> z >= s.snakes[i], s.snakes[Z])
-		return isempty(W)
-	end, n)
-end
-
-function listclusters(s::SType, i::Int,
-	c::Array{T,2}, d::Dict{T,Int}) where T
-	I = head(s.snakes[i])
-	n = my_peeps(s, i)
-
-	U = unique(map(x -> c[x...], n))
-	filter(x -> x != c[I[1], I[2]], U)
-end
-
-function nempty(z, s::Array{Snake,1})
-	r, ci = z
-	r*ci - sum(length.(s))
+function nempty(w::Int, h::Int, s::Dict{Int,Int})
+	k = sum(collect(values(s)))
+	k == 0 && return w*h
+	return k
 end
 
 # ==================================================================
@@ -239,6 +245,6 @@ function threatvalue(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
 
 	c, d, l = listclusters(fr.state, i)
-	println(colorarray(c))
-	return 0
+	# println(colorarray(c))
+	return colorarray(c), d, l
 end

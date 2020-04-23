@@ -3,6 +3,7 @@ abstract type AbstractAlgo end
 include("../env/Snake.jl")
 
 include("frames.jl")
+include("clustering.jl")
 include("utils.jl")
 include("Lookahead.jl")
 include("Value.jl")

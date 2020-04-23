@@ -503,122 +503,17 @@ function colorarray(g, x = (-1, -1))
 	df = Crayon(background=:default, foreground=:default)
 	io = IOBuffer()
 	num_rep = (x) -> lpad(x == -1 ? "" : "$(x) ", 3)
+	color(x) = SNAKE_COLORS[(x - 1) % length(SNAKE_COLORS) + 1]
 	foreach( i -> begin
 		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : num_rep(g[i, y[1]])),
 			map(j -> g[i, j] == -1 ? (j, bc,) :
-			(j, Crayon(background=SNAKE_COLORS[g[i, j]],
+			(j, Crayon(background=color(g[i, j]),
 				foreground=:white),), 1:c))
 		println(io, df)
 		end, 1:r)
 	String(take!(io))
 end
 
-
-# - exploration set
-# - roots of each cluster
-# - cluster id of each cluster
-# - cluster length of each cluster
-# - snakes
-# - cells
-
-
-# roots and cluster ids
-# A union find with a condition that cluster should
-# have same root ids inorder to be united as one cluster
-function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
-	S = filter(alive, snks)
-	r, ci = size(cls)
-	length(S) == 0 && return zeros(size(cls)), Dict(0=>r*ci)
-	init = matrix(cls; default=-1)
-	ss = sort(S, by=length)
-	exp = Tuple{Int,Int}[]
-	roots = Dict{Int,Int}()
-	l = length(ss)
-	cnt = 1
-	# initial exploration set
-	@inbounds for i=l:-1:1
-		snake = ss[i]
-		N = neighbours(head(snake), r, ci)
-		foreach(N) do n
-			nx, ny = n[1], n[2]
-			init[nx, ny] != -1 && return
-			cell = cls[nx, ny]
-			hassnake(cell) && return
-			roots[cnt] = id(snake)
-			init[nx, ny] = cnt
-			push!(exp, n)
-			cnt += 1
-		end
-	end
-	cids = Int[1:(cnt - 1)...]
-	clens = ones(Int, cnt - 1)
-	function ctop(c::Int)
-		c == -1 && return c
-		@inbounds while cids[c] != c
-			c = cids[c]
-		end
-		return c
-	end
-	function merge_cls(k::Int, v::Int)
-		@inbounds begin
-			a, b =  clens[k] > clens[v] ? (k, v) : (v, k)
-			at = ctop(a)
-			cids[b] = cids[a] = at
-			clens[at] += clens[b]
-			clens[b] = clens[a] = clens[at]
-		end
-	end
-	# exploration
-	ni = 0
-	@inbounds while !isempty(exp)
-		ni += 1
-		x = popfirst!(exp)
-		N = neighbours(x, r, ci)
-		v = init[x[1], x[2]]
-		rt = roots[v]
-		xn = 0
-
-		for j=1:length(N)
-			n = N[j]
-			nx, ny = n[1], n[2]
-			cell = cls[nx, ny]
-			hassnake(cell) && continue
-			k = init[nx, ny]
-			if k != -1
-				k == v && continue # ancestor
-				roots[k] != rt && continue # a bigger snake reached here first
-				cids[k] == cids[v] && continue # already merged
-				# merge k and v clusters
-				merge_cls(k, v)
-
-			else
-				init[nx, ny] = cids[v]
-				clens[v] += 1
-				push!(exp, n)
-				xn += 1
-			end
-		end
-		# __cls__()
-		# println(colorarray(init, x))
-		# sleep(0.1)
-	end
-	# @show ni, r*ci
-
-	# final compilation
-	d = Dict{Int,Int}()
-	@inbounds for j=1:ci, i=1:r
-		c = init[i, j]
-		if c != -1
-			c = ctop(c)
-			init[i, j] = c # final cluster id
-		end
-		if !haskey(d, c)
-			d[c] = 0
-		end
-		d[c] += 1
-	end
-	return init, d
-end
 #
 # function reachableclusters(cls, snks)
 # 	S = filter(alive, snks)
