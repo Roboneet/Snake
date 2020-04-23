@@ -174,9 +174,9 @@ sls(N=4) = TreeSearch{Minimax,JazzCop,SeqLocalSearch{N}}
 function within(s, i, r)
 	snakes = Set(Snake[])
 	total = Set(s)
-	@show i
+	# @show i
 	for k=max(length(i) - 2, 1):length(i)
-		@show k, length(i)
+		# @show k, length(i)
 		n = filter(x -> begin
 				for j=1:length(x.trail)
 					all(abs.((x.trail[j] .- i[k])) .<= r) &&
@@ -220,7 +220,7 @@ function seqlocalmoves(s::SType, i::Int, m)
 	R = filter(alive, s.snakes)
 	R = filter(x -> id(x) != i, R)
 	R = within(R, s.snakes[i].trail, 2)
-	
+
 	moves = []
 	for i2=1:length(m)
 		x = m[i2]
