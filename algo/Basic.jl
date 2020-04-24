@@ -25,11 +25,12 @@ struct SpaceChase <: AbstractAlgo end
 pipe(algo::Type{SpaceChase}, s::SType, i::Int) = flow(canmove(s, i)..., morespace(s, i))
 
 function morespace(s::SType, i::Int, f=reachableclusters)
-	c, d = f(s, i)
+	c, d, r = f(s, i)
 	I = head(s.snakes[i])
 	return y -> begin
 		Y = map(y) do x
 			v = c[(x .+ I)...]
+			!(v in r[i]) && return 0
 			d[v]
 		end
 		return y[Y .== maximum(Y)]

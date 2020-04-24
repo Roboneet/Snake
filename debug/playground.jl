@@ -1,6 +1,9 @@
 include("../algo/algo.jl")
 include("utils.jl")
+include("Human.jl")
 using Statistics
+using REPL
+using REPL.Terminals
 
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
@@ -64,21 +67,48 @@ function winstats(algos, env; N::Int=100, progress=false)
 	return wins
 end
 
+struct Screen
+	term
+end
+
+Screen() = Screen(TTYTerminal("", stdin, stdout, stderr))
+
+start(::Nothing) = nothing
+step(::Nothing, x...) = nothing
+end_(::Nothing, x...) = nothing
+cursor_top(term::TTYTerminal) = cursor_top(term.out_stream)
+hide_cursor(term::TTYTerminal) = print(term.out_stream, "\x1b[?25l")
+show_cursor(term::TTYTerminal) = print(term.out_stream, "\x1b[?25h")
+function start(sc::Screen)
+	Terminals.clear(sc.term)
+	REPL.TerminalMenus.enableRawMode(sc.term)
+	hide_cursor(sc.term)
+end
+
+function step(sc::Screen, fr)
+	cursor_top(sc.term)
+	show(sc.term.out_stream, fr)
+end
+
+function end_(sc::Screen, fr)
+	Terminals.clear(sc.term)
+	show(sc.term.out_stream, fr)
+
+	REPL.TerminalMenus.enableRawMode(sc.term)
+	show_cursor(sc.term)
+end
+
 function play(algos, env; verbose=false)
 	reset!(env)
 	N = Nsnakes(env)
 
-	if verbose
-		cls(stdout)
-	end
+	sc = verbose ? Screen() : nothing
+	start(sc)
 
 	fr = Frame(state(env), nothing)
 	top = fr
 	while !done(env)
-		if verbose
-			cursor_top(stdout)
-			display(fr)
-		end
+		step(sc, fr)
 		s = state(env)
 		moves = ntuple(x -> findmove(algos[x], s, x), N)
 		step!(env, moves)
@@ -93,10 +123,7 @@ function play(algos, env; verbose=false)
 		# fr = child(fr, moves, Frame(s′, d, fr))
 		fr = child(fr, moves, Frame(s′, fr))
 	end
-	if verbose
-		cls(stdout)
-		display(fr)
-	end
+	end_(sc, fr)
 
 	return top
 end

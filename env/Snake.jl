@@ -449,14 +449,14 @@ function move(board::Board, moves)
 
         removetail!(board, s)
 
-        if caneat(board, s)
-            health(s, SNAKE_MAX_HEALTH)
-            addtail!(board, s)
-        end
-
         if health(s) <= 0
             # snake died out of starvation :(
             kill!(board, s, :STARVATION)
+        end
+
+        if caneat(board, s)
+            health(s, SNAKE_MAX_HEALTH)
+            addtail!(board, s)
         end
 
     end

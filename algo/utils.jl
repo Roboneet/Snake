@@ -4,6 +4,7 @@ __cls__(io=stdout) = print(io, "\x1b[H\x1b[2J")
 cls(args...) = __cls__(args...)
 cursor_top(io) = print(io, "\x1b[H")
 
+
 T = Dict((1, 0)=>"down", (-1, 0)=>"up",
 	(0, 1)=>"right", (0, -1)=>"left", (0, 0)=>"___")
 S = Dict((1, 0)=>"↓", (-1, 0)=>"↑",
@@ -496,14 +497,31 @@ function reachableclusters(s::SType, i=nothing)
 	return reachableclusters(cls, s.snakes)
 end
 
+function colorarray(g::Array{Int,2}, d::Dict{Int,Int},
+	l::Dict{Int,Array{Int,1}}, i=nothing)
+	m = maximum(collect(keys(d)))
+	M = Any[(0, 0, 0) for i=1:m]
+	if i == nothing
+		for (k, v) in l
+			for c in v
+				M[c] = SNAKE_COLORS[k]
+			end
+		end
+	else
+		for c in l[i]
+			M[c] = SNAKE_COLORS[i]
+		end
+	end
+	colorarray(g, (-1, -1), M)
+end
 
-function colorarray(g, x = (-1, -1))
+function colorarray(g, x = (-1, -1), colors=SNAKE_COLORS)
 	r, c = size(g)
 	bc = Crayon(background=:black)
 	df = Crayon(background=:default, foreground=:default)
 	io = IOBuffer()
 	num_rep = (x) -> lpad(x == -1 ? "" : "$(x) ", 3)
-	color(x) = SNAKE_COLORS[(x - 1) % length(SNAKE_COLORS) + 1]
+	color(x) = colors[(x - 1) % length(colors) + 1]
 	foreach( i -> begin
 		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : num_rep(g[i, y[1]])),
 			map(j -> g[i, j] == -1 ? (j, bc,) :
