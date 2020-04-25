@@ -175,7 +175,7 @@ function within(s, i, r)
 	snakes = Set(Snake[])
 	total = Set(s)
 	# @show i
-	for k=max(length(i) - 2, 1):length(i)
+	for k=1:length(i)
 		# @show k, length(i)
 		n = filter(x -> begin
 				for j=1:length(x.trail)
@@ -233,8 +233,8 @@ function seqlocalmoves(s::SType, i::Int, m)
 	for i2=1:length(m)
 		x = m[i2]
 		h = head(s.snakes[i]) .+ x
-		r = within(R, [h], 1)
-		# r = R
+		# r = within(R, [h], 1)
+		r = R
 		# @show head.(r), h
 		if length(r) > 1 || isempty(r)
 			# too many local snakes

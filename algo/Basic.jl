@@ -92,7 +92,7 @@ function stab(s::SType, i::Int, t::Int)
 		K = filter(x -> (x .+ I) in k, y)
 		length(snakes[i]) >= length(snakes[t]) && !isempty(K) && return K
 
-		return safermove(s, i, t, cls)(y)
+		return safermove(s, i, t, cls, I)(y)
 	end
 end
 
