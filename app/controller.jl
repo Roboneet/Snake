@@ -7,7 +7,7 @@ algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
 algoDict["wip"] = sls(4)
-algoDict["peepeepoopoo"] = Earthworm{4,Grenade,TreeSearch{NotBad,Punk,SeqLocalSearch{2}}}
+algoDict["peepeepoopoo"] = Earthworm{3,Grenade,TreeSearch{NotBad,Punk,SeqLocalSearch{2}}}
 algoDict["antimatter"] = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
 
 function whichalgo(req)
