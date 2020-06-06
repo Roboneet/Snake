@@ -25,7 +25,7 @@ function logger(f, req)
 end
 
 function xy(k, rows, columns) 
-	v = (rows - k["y"], k["x"])
+	v = (rows - k["y"], k["x"] + 1)
     return v
 end
 
