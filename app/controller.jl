@@ -38,7 +38,7 @@ include("views.jl")
    logger,
    Mux.defaults,
    page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
-   page("/:s/", api_info)
+   page("/:s/", api_info),
    page("/:s/start", start),
    page("/:s/move", move),
    page("/:s/ping", respond("ok")),
