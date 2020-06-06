@@ -24,7 +24,11 @@ function logger(f, req)
     return res
 end
 
-xy(k, rows, columns) = (rows - k["y"], columns - k["x"])
+function xy(k, rows, columns) 
+	v = (rows - k["y"], columns - k["x"])
+	@show k, rows, columns, v
+	return v
+end
 
 function extract(params::Dict)
 	gameid = params["game"]["id"]
