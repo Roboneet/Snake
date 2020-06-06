@@ -25,9 +25,8 @@ function logger(f, req)
 end
 
 function xy(k, rows, columns) 
-	v = (rows - k["y"], columns - k["x"])
-	@show k, rows, columns, v
-	return v
+	v = (rows - k["y"], k["x"])
+    return v
 end
 
 function extract(params::Dict)
