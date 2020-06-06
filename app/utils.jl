@@ -24,14 +24,14 @@ function logger(f, req)
     return res
 end
 
-xy(k) = (k["y"] + 1,k["x"] + 1)
+xy(k, rows, columns) = (rows - k["y"], columns - k["x"])
 
 function extract(params::Dict)
 	gameid = params["game"]["id"]
     board_p = params["board"]
     height = board_p["height"]
     width = board_p["width"]
-	food = extract_food(board_p["food"])
+	food = extract_food(board_p["food"], height, width)
     snakes = Snake[]
     me = -1
     for i=1:length(board_p["snakes"])
@@ -47,13 +47,13 @@ function extract(params::Dict)
         snakes, length(snakes), params["turn"]), me=me, gameid=gameid)
 end
 
-function extract_food(f)
+function extract_food(f, height, width)
 	isempty(f) && return Tuple{Int,Int}[]
-    return xy.(f)
+    return map(ele -> xy(ele, height, width), f)
 end
 
 function extract_snake_trail(f, height, width)
-	trail = reverse(collect(xy.(f)))
+	trail = reverse(collect(map(ele -> xy(ele, height, width), f)))
 	return trail
 end
 
