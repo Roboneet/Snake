@@ -31,8 +31,10 @@ function foo(req)
     return "ok"
 end
 
-function start(req)
-    JSON.json((color="#8752ef",))
+start(x) = "ok"
+
+function snake_info(req)
+    JSON.json((apiversion="1", color="#8752ef",))
 end
 
 function test_store(req)
