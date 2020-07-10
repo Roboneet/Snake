@@ -34,7 +34,7 @@ end
 start(x) = "ok"
 
 function snake_info(req)
-    JSON.json((apiversion="1", color="#333",))
+    JSON.json((apiversion="1", color="#323232",))
 end
 
 function test_store(req)

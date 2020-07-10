@@ -46,7 +46,8 @@ function extract(params::Dict)
 		direction = extract_snake_direction(trail)
         push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
     end
-    return (state=SType(Config(height, width, MULTI_PLAYER_MODE), food,
+    mode = length(snakes) == 1 ? SINGLE_PLAYER_MODE : MULTI_PLAYER_MODE
+    return (state=SType(Config(height, width, mode), food,
         snakes, length(snakes), params["turn"]), me=me, gameid=gameid)
 end
 

@@ -33,13 +33,15 @@ struct SType
 end
 
 Config() = Config(0, 0, :DEFAULT)
+
 SType(n::Int) = SType(Config(), [], [], 0, n)
 SType() = SType(Config(), [], [], 0, 0)
 
-turn(st::SType) = st.turn
 mode(c::Config) = c.mode
 height(c::Config) = c.height
 width(c::Config) = c.width
+
+turn(st::SType) = st.turn
 mode(st::SType) = mode(st.config)
 height(st::SType) = height(st.config)
 width(st::SType) = width(st.config)

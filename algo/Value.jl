@@ -113,12 +113,12 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 	c, d, l = listclusters(fr.state, i)
 	st = fr.state
 
-	ne = nempty(width(st), height(st), d)
+	ne = nempty(width(st), height(st), d, mode(st), length(st.snakes[i]))
 
 	if ne == 0
 		println(fr)
 		println(colorarray(c))
-
+		@show d, l
 	end
 	isempty(l) && return 0
 	pempty(x) = min(floor(Int, x*100/ne), cap)
@@ -163,7 +163,10 @@ end
 # 	filter(x -> x != c[I[1], I[2]], U)
 # end
 
-function nempty(w::Int, h::Int, s::Dict{Int,Int})
+function nempty(w::Int, h::Int, s::Dict{Int,Int}, mode, len::Int)
+	if mode == SINGLE_PLAYER_MODE
+		return w*h - len
+	end
 	k = sum(collect(values(s)))
 	k == 0 && return w*h
 	return k
