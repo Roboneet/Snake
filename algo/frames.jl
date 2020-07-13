@@ -86,10 +86,10 @@ function Base.show(io::IO, fr::Frame)
 	println(io, "Turn $(turn(fr))")
 	Base.show(io, Board(fr.state))
 	snks = fr.state.snakes
-	headers = ["ID", "Length", "Health"]
+	headers = ["ID", " Length", " Health", " Death Reason"]
 	rows = map(x ->
 		string.([id(x), length(x),
-			health(x)]),
+			health(x), x.death_reason]),
 		snks)
 	printtable(io, headers, rows, alive.(snks))
 end

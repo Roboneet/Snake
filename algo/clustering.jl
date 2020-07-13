@@ -16,11 +16,30 @@
 
 const RBuf = Array{Int64,2}
 
+mutable struct ExpSet
+	current::Array{Tuple{Int,Int},1}
+	next::Array{Tuple{Int,Int},1}
+end
+
+current(exp::ExpSet) = exp.current
+next(exp::ExpSet) = exp.next
+
+function swap!(exp::ExpSet)
+	c = current(exp)
+	exp.current = exp.next
+	exp.next = c
+	return exp
+end
+
+function Base.push!(exp::ExpSet, ele::Tuple{Int,Int})
+	push!(next(exp), ele)
+end
+	
 mutable struct SnakeBFS
-	cells
-	snakes
-	exploration_set
-	generation
+	cells::Array{Cell,2}
+	snakes::Array{Snake,1}
+	exploration_set::ExpSet
+	generation::Int
 end
 
 mutable struct ClusterInfo
@@ -30,8 +49,16 @@ mutable struct ClusterInfo
 	snake::Int
 end
 
-struct SnakeUF
-	clusters
+struct SnakeUF{C}
+	clusters::C
+end
+
+function isalive(bfs::SnakeBFS, uf::SnakeUF, v::Int)
+	id = uf.clusters[v].snake
+	s = filter(x -> x.id == id, bfs.snakes)
+	length(s) == 1 || throw("length(s) = $(length(s)) not possible")
+	g = bfs.generation
+	return s[1].health > g
 end
 
 function gen(bfs::SnakeBFS)
@@ -76,7 +103,7 @@ function initialise(cls::Array{Cell,2}, S::Array{Snake,1})
 	N = cnt - 1
 	cids = Int[1:N...]
 	clens = ones(Int, N)
-	return init, SnakeBFS(cls, S, [exp, []], 1), SnakeUF(map(
+	return init, SnakeBFS(cls, S, ExpSet(exp, []), 1), SnakeUF(map(
 		x -> ClusterInfo(x, 1, x, roots[x]), 1:N))
 end
 
@@ -112,21 +139,24 @@ end
 
 exp(bfs::SnakeBFS) = bfs.exploration_set
 
-function done(bfs::SnakeBFS)
-	return isempty(exp(bfs)[1]) && isempty(exp(bfs)[2])
+@inline function isdone(bfs::SnakeBFS)
+	return isempty(current(exp(bfs))) && isempty(next(exp(bfs)))
+end
+
+function should_swap(exp::ExpSet)
+	return isempty(current(exp))
 end
 
 function next(bfs::SnakeBFS)
-	!isempty(exp(bfs)[1]) &&
-		return popfirst!(exp(bfs)[1])
+	should_swap(exp(bfs)) || 
+	return popfirst!(current(exp(bfs)))
 
-	k = popfirst!(exp(bfs))
-	push!(exp(bfs), k)
+	swap!(exp(bfs))
 	gen(bfs)
 	next(bfs)
 end
 
-function next(bfs::SnakeBFS, x::Tuple{Int,Int})
+function bfs_neighbours(bfs::SnakeBFS, x::Tuple{Int,Int})
 	return neighbours(x, size(bfs.cells)...)
 end
 cells(bfs::SnakeBFS) = bfs.cells
@@ -148,7 +178,7 @@ function cluster!(uf::SnakeUF, init::RBuf, n::Tuple{Int,Int}, k::Int)
 	uf.clusters[k].length += 1
 end
 
-Base.push!(bfs::SnakeBFS, n::Tuple{Int,Int}) = push!(exp(bfs)[2], n)
+Base.push!(bfs::SnakeBFS, n::Tuple{Int,Int}) = push!(exp(bfs), n)
 
 function compile!(uf::SnakeUF, roots::Dict{Int, Array{Int,1}})
 	C = uf.clusters
@@ -195,12 +225,13 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 	init, bfs, uf = initialise(cls, S)
 
 	# exploration
-	@inbounds while !done(bfs)
+	while !isdone(bfs)
 		x = next(bfs)
-		N = next(bfs, x)
 		v = cluster(init, x)
+		isalive(bfs, uf, v) || continue 
+		N = bfs_neighbours(bfs, x)
 
-		for j=1:length(N)
+		@inbounds for j=1:length(N)
 			n = N[j]
 			nx, ny = n[1], n[2]
 			!canvisit(bfs, n) && continue
@@ -214,16 +245,20 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 				cluster!(uf, init, n, parent(uf, v))
 				push!(bfs, n)
 			end
-		end
+		end		
+		# should_swap(exp(bfs)) || continue
 		# __cls__()
 		# println(colorarray(init, x))
-		# sleep(0.1)
+		# sleep(1)
 	end
+	# println("final generation: $(bfs.generation)")
 	# @show ni, r*ci
 	roots = Dict{Int, Array{Int,1}}()
 	for i=1:length(S)
 		roots[S[i].id] = Int[]
 	end
-
-	compile!(uf, init, roots)
+	res = compile!(uf, init, roots)
+    # __cls__()
+	# println(colorarray(init))
+	return res
 end

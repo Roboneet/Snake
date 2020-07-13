@@ -4,6 +4,7 @@ include("Human.jl")
 using Statistics
 using REPL
 using REPL.Terminals
+using UnicodePlots
 
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
@@ -127,3 +128,27 @@ function play(algos, env; verbose=false)
 
 	return top
 end
+
+perframe(f, fr) = f(fr)
+mapframes(f, fr) = [perframe(f, fr), mapframes(f, next(fr))...]
+mapframes(f, fr::Nothing) = []
+
+graph(f, fr; kwargs...) = lineplot(mapframes(f, fr); kwargs...)
+graph!(f, fr, plt; kwargs...) = lineplot!(plt, mapframes(f, fr); kwargs...)
+graphvalue(fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph(x -> statevalue(v, x, i), fr; kwargs...) 
+graphvalue!(plt, fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph!(x -> statevalue(v, x, i), fr, plt; kwargs...)
+
+function graphgame(fr, v::Type{<:AbstractValue}; kwargs...)
+	N = length(fr.state.snakes)
+	ntuple(x -> graphvalue(fr, v, x; kwargs...), N)
+end
+
+function graphgame!(fr, v::Type{<:AbstractValue}; kwargs...)
+	N = length(fr.state.snakes)
+	plt = graphvalue(fr, v, 1; name=1, kwargs...)
+	for i=2:N
+		graphvalue!(plt, fr, v, i; name=i)
+	end
+	plt
+end
+

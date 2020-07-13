@@ -350,7 +350,7 @@ LEGENDS = Dict(
 
 cellvalue(io, x...) = print(io, LEGENDS[:empty])
 cellvalue(io, x::Cell) = print(io, x.value)
-SNAKE_COLORS = (:red, :dark_gray, (33, 118, 208), (95, 38, 156),
+SNAKE_COLORS = ((230, 86, 86), :dark_gray, (33, 118, 208), (95, 38, 156),
     (11, 105, 117), :light_gray, :light_red, :light_green,
     :light_yellow, :light_blue, :light_magenta, :light_cyan, :yellow,
     (123,31,162), (165,214,167), (215,204,200), (26,35,126))
