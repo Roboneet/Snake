@@ -36,7 +36,7 @@ function (w::WSParser)(d::Dict)
          direction, nothing)
     end
     SType(w.config,
-        extract_food(d["food"]),
+        extract_food(d["food"], height, width),
         snakes, count(alive.(snakes)),
         d["turn"])
 end
