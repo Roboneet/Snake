@@ -1,3 +1,6 @@
+using Pkg
+Pkg.activate(".")
+
 using Mux
 using Mux: URI
 using JSON
@@ -38,20 +41,17 @@ include("firstcall.jl")
 include("controller.jl")
 
 
-
 using Sockets
 function startServer()
 	if IS_PROD 
 		port = parse(Int, ENV["PORT"])
 		ipaddr = ip"0.0.0.0"
 		println("Starting...")
-		entry = () -> serve(sankeserver, ipaddr, port)
-		@spawnat 1 entry()
-		@spawnat 2 entry()
-		entry()
+		serve(sankeserver, ipaddr, port; reuseaddr=true)
 		println("Serving on port $(ENV["PORT"])")
 	else
 		serve(sankeserver, haskey(ENV, "port") ? parse(Int, ENV["port"]) : 8080)
+		println("server started")
 	end
 end
 
