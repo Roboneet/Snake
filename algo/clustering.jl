@@ -65,6 +65,7 @@ function gen(bfs::SnakeBFS)
 	bfs.generation = bfs.generation + 1
 	gen(bfs.cells, bfs.snakes, bfs.generation)
 end
+
 function gen(cls::Array{Cell,2}, S::Array{Snake,1}, i::Int)
 	for j=1:length(S)
 		s = S[j]
@@ -217,12 +218,19 @@ function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 	return init, d, roots
 end
 
-function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
+function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; no_merge=false)
 	S = filter(alive, snks)
 	length(S) == 0 && return zeros(size(cls)), Dict(0=>prod(size(cls)...))
 
 	S = sort(S, by=length)
 	init, bfs, uf = initialise(cls, S)
+
+	# __cls__()
+	# println(colorarray(init))
+	# println()
+	# showcells(stdout, cls)
+	# sleep(1)
+	# readline()
 
 	# exploration
 	while !isdone(bfs)
@@ -238,7 +246,7 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1})
 			if visited(init, n)
 				cls[x...].ishead && continue
 				k = cluster(init, n)
-				!should_merge(uf, k, v) && continue
+				(no_merge || !should_merge(uf, k, v)) && continue
 				# merge k and v clusters
 				merge_cls(uf, k, v)
 			else

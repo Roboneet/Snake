@@ -24,7 +24,8 @@ struct SpaceChase <: AbstractAlgo end
 
 pipe(algo::Type{SpaceChase}, s::SType, i::Int) = flow(canmove(s, i)..., morespace(s, i))
 
-function morespace(s::SType, i::Int, f=reachableclusters)
+spaceF = (s, i) -> reachableclusters(s, i)
+function morespace(s::SType, i::Int, f=spaceF)
 	c, d, r = f(s, i)
 	I = head(s.snakes[i])
 	return y -> begin
@@ -51,6 +52,17 @@ function closestfood(s::SType, i::Int)
 	isempty(c) && return identity
 	return y -> astar(cells(s), head(s.snakes[i]), c, y)
 end
+
+# ==============================================================
+#                          ComboChase
+# ==============================================================
+
+# Chase space and then food
+struct ComboChase <: AbstractAlgo end
+
+pipe(algo::Type{ComboChase}, s::SType, i::Int) = 
+	flow(canmove(s, i)..., morespace(s, i), closestfood(s, i))
+
 
 # ==============================================================
 #                          Killer snake
