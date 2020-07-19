@@ -1,5 +1,7 @@
 using Pkg
 Pkg.activate(".")
+Pkg.status()
+Pkg.instantiate()
 
 using Mux
 using Mux: URI
