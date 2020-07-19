@@ -1,6 +1,8 @@
 # using DataFrames
 
-function move(req, wa=whichalgo)
+function move(req, wa=whichalgo) 
+	println("nthreads =  $(Threads.nthreads())")
+	println("threadid =  $(Threads.threadid())")
     d = JSON.parse(String(copy(req[:data])))
     ex = extract(d)
     st = ex[:state]
