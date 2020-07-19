@@ -58,3 +58,4 @@ end
 
 startServer()
 
+Base.JLOptions().isinteractive==0 && wait()
