@@ -8,7 +8,7 @@ function exec_later(i)
 		include("./main.jl")
 	end
 end
-exec_later(1)
+# exec_later(1)
 # exec_later(2)
 
 Base.JLOptions().isinteractive==0 && wait()
