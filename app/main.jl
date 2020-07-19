@@ -15,6 +15,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD=""
 REDIS_DB=0
 USE_REDIS=false
+IS_PROD=haskey(ENV, "ON_HEROKU")
 
 
 if USE_REDIS && haskey(ENV, "REDIS_URL")
@@ -33,17 +34,27 @@ if USE_REDIS && haskey(ENV, "REDIS_URL")
 end
 
 include("../algo/algo.jl")
+include("firstcall.jl")
 include("controller.jl")
 
+
+
 using Sockets
-if haskey(ENV, "ON_HEROKU")
-    println("Starting...")
-    serve(sankeserver, ip"0.0.0.0", parse(Int, ENV["PORT"]))
-    println("Serving on port $(ENV["PORT"])")
-else
-    serve(sankeserver, haskey(ENV, "port") ? parse(Int, ENV["port"]) : 8080)
+function startServer()
+	if IS_PROD 
+		port = parse(Int, ENV["PORT"])
+		ipaddr = ip"0.0.0.0"
+		println("Starting...")
+		entry = () -> serve(sankeserver, ipaddr, port)
+		@spawnat 1 entry()
+		@spawnat 2 entry()
+		entry()
+		println("Serving on port $(ENV["PORT"])")
+	else
+		serve(sankeserver, haskey(ENV, "port") ? parse(Int, ENV["port"]) : 8080)
+	end
 end
 
-include("firstcall.jl")
+startServer()
 
 Base.JLOptions().isinteractive==0 && wait()
