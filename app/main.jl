@@ -1,7 +1,6 @@
 using Pkg
-Pkg.activate(".")
-Pkg.status()
-Pkg.instantiate()
+println("pwd = $(pwd())")
+println("@__DIR__ = $(@__DIR__)")
 
 using Mux
 using Mux: URI
