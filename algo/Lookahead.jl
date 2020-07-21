@@ -23,7 +23,6 @@ function lookahead(T::AbstractTorch, s::SType, i::Int, l::Int, fr::Frame)
 	(l == 0 || done(G)) && return fr
 	c = lookat(T, s, i)
 	Threads.@threads for k=1:length(c)
-		println("threadid = $(Threads.threadid())")
 		X = c[k]
 		if !haschild(fr, X)
 			g = Game(s)
