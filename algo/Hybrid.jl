@@ -9,3 +9,15 @@ function pipe(::Type{Earthworm{K,A,B}}, s::SType, i::Int) where {K,A,B}
         return pipe(A, s, i)
     end
 end
+
+# Mutant tree search
+
+struct Mutant <: AbstractAlgo end
+
+function pipe(::Type{Mutant}, s::SType, i::Int)
+	if s.ns <= 3
+		return pipe(TreeSearch{NotBad,Punk,CandleLight{2}}, s, i)
+	else 
+		return pipe(TreeSearch{NotBad,Punk,SeqLocalSearch{2}}, s, i)
+	end
+end

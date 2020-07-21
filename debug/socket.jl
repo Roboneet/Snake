@@ -30,13 +30,16 @@ function (w::WSParser)(d::Dict)
     snakes = map(1:length(d["snakes"])) do i
         x = d["snakes"][i]
         trail = extract_snake_trail(x["body"], height, width)
+		trail = map(p -> (height - p[1] + 1, p[2],), trail)
         direction = extract_snake_direction(trail)
         alive = (x["death"] == nothing)
         Snake(i, trail, x["health"], alive,
          direction, nothing)
     end
+    food = extract_food(d["food"], height, width)
+	food = map(p -> (height - p[1] + 1, p[2],), food)
     SType(w.config,
-        extract_food(d["food"], height, width),
+		food,
         snakes, count(alive.(snakes)),
         d["turn"])
 end
