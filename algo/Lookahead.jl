@@ -36,7 +36,7 @@ function lookahead(T::AbstractTorch, s::SType, i::Int, l::Int, fr::Frame)
 		end
 		if !done(ns) && alive(ns.snakes[i])
 			lookahead(T, ns, i, l - 1, nr)
-			fr.nodes += nr.nodes
+			fr.stats.nodes += nr.stats.nodes
 		end
 	end
 	return fr

@@ -82,7 +82,7 @@ function treesearch(::Type{TreeSearch{R,V,T}},
 	b = basic(s, i)
 	length(b) <= 1 && return b
 	fr = lookahead(T, s, i)
-	@show fr.nodes
+	@show fr.stats.nodes
 	# viewtree(fr, i, V)
 	# min - max value
 	statereduce(R, V, fr, i)

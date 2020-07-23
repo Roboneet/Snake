@@ -3,17 +3,20 @@ using REPL
 using REPL.Terminals: TTYTerminal
 using REPL.TerminalMenus: enableRawMode, disableRawMode, readKey
 
+mutable struct FrameStats
+	nodes
+end
 struct Frame
 	no::Int
 	state::SType
 	children::Dict
     prev
-	nodes
+	stats
 end
 
 turn(fr::Frame) = fr.no
 Frame(state::SType, prev) = Frame(state.turn, copystate(state),
-								  Dict(), prev, 1)
+								  Dict(), prev, FrameStats(1))
 
 haschild(fr::Frame, moves) = haskey(fr.children, moves)
 child(fr::Frame, moves) = fr.children[moves]
