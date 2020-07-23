@@ -251,3 +251,19 @@ function threatvalue(fr::Frame, i::Int)
 	# println(colorarray(c))
 	return colorarray(c), d, l
 end
+
+# ==================================================================
+#                        LiveLongValue 
+# ==================================================================
+
+struct LiveLongValue <: AbstractValue end
+
+value(::Type{LiveLongValue}, fr::Frame, i::Int) = livelongvalue(fr, i)
+
+# wip
+function livelongvalue(fr::Frame, i::Int)
+	!alive(fr.state.snakes[i]) && return 0
+
+	return max(0, spacevalue(fr, i) - lengthvalue(fr, i))
+end
+

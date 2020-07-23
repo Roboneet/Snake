@@ -1,15 +1,14 @@
-# using DataFrames
+function findmove_with_timeout(algo, st, me)
 
-function move(req, wa=whichalgo)
+end
+
+function move(req, wa=whichalgo) 
     d = JSON.parse(String(copy(req[:data])))
     ex = extract(d)
     st = ex[:state]
     me = ex[:me]
     algo = wa(req)
     move = findmove(algo, st, me)
-    if USE_REDIS
-        keep(ex[:gameid], algo, st, me, move)
-    end
     k = eng(move)
     return JSON.json((move=k,))
 end
@@ -20,10 +19,6 @@ test_intersect(req) = move(req, (r) -> sls(parse(Int, r[:params][:n])))
 function foo(req)
     ex = extract(JSON.parse(String(req[:data])))
     st = ex[:state]
-    # store in the db when /end is pinged
-    if USE_REDIS
-        keep(ex[:gameid], :end, st, ex[:me])
-    end
     io = IOBuffer()
     println(io, st.turn)
     showcells(io, st)

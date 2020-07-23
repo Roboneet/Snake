@@ -108,10 +108,19 @@ function play(algos, env; verbose=false)
 
 	fr = Frame(state(env), nothing)
 	top = fr
+
+	times = [Float32[] for i=1:N]
 	while !done(env)
 		step(sc, fr)
 		s = state(env)
-		moves = ntuple(x -> findmove(algos[x], s, x), N)
+		# moves = ntuple(x -> findmove(algos[x], s, x), N)
+		moves = []
+		for x=1:N
+			a = algos[x]
+			t = @elapsed v = findmove(a, s, x)
+			push!(times[x], t)
+			push!(moves, v)
+	    end
 		step!(env, moves)
 		s′ = state(env)
 
@@ -126,7 +135,7 @@ function play(algos, env; verbose=false)
 	end
 	end_(sc, fr)
 
-	return top
+	return top, times
 end
 
 perframe(f, fr) = f(fr)

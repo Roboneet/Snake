@@ -36,7 +36,7 @@ include("views.jl")
 
 @app sankeserver = (
    logger,
-   Mux.defaults,
+   IS_PROD ? Mux.prod_defaults : Mux.defaults,
    page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
    page("/:s/", snake_info),
    page("/:s/start", start),

@@ -22,7 +22,7 @@ function lookahead(T::AbstractTorch, s::SType, i::Int, l::Int, fr::Frame)
 	G = Game(s)
 	(l == 0 || done(G)) && return fr
 	c = lookat(T, s, i)
-	# Threads.@threads
+	# Threads.@threads 
 	for k=1:length(c)
 		X = c[k]
 		if !haschild(fr, X)
@@ -35,7 +35,8 @@ function lookahead(T::AbstractTorch, s::SType, i::Int, l::Int, fr::Frame)
 			ns = nr.state
 		end
 		if !done(ns) && alive(ns.snakes[i])
-			T(ns, i, l - 1, nr)
+			lookahead(T, ns, i, l - 1, nr)
+			fr.stats.nodes += nr.stats.nodes
 		end
 	end
 	return fr
@@ -254,25 +255,6 @@ end
 
 function lookat(T::SeqLocalSearch{N}, s::SType, i::Int) where N
 	seqlocalmoves(s, i, basic(s, i))
-end
-
-# ==============================================================
-#                          N Algo lookahead
-# ==============================================================
-
-# follow all the guiding staffs
-# Use as: Minimax{NStaff{Tuple{Staff{FoodChase,2},Staff{SpaceChase,2}}}}
-# not useful by itself
-struct NStaff{A <: Tuple} <: AbstractTorch end
-
-function (c::NStaff{A})(s::SType, i::Int, fr::Frame) where A <: Tuple
-	o = OneSearch()
-	o(s, i, fr)
-	for x in A.parameters
-		t = x()
-		t(s, i, fr)
-	end
-	return fr
 end
 
 # ==============================================================
