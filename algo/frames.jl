@@ -8,11 +8,12 @@ struct Frame
 	state::SType
 	children::Dict
     prev
+	nodes
 end
 
 turn(fr::Frame) = fr.no
 Frame(state::SType, prev) = Frame(state.turn, copystate(state),
- 	Dict(), prev)
+								  Dict(), prev, 1)
 
 haschild(fr::Frame, moves) = haskey(fr.children, moves)
 child(fr::Frame, moves) = fr.children[moves]
