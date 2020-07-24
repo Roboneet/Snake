@@ -26,6 +26,7 @@ mutable struct SnakeState
 	exploration_set::ExpSet
 	has_eaten::Bool
 	tail_lag::Int
+	power_boost::Int
 end
 
 mutable struct SnakeBFS
@@ -64,7 +65,7 @@ function isalive(bfs::SnakeBFS, uf::SnakeUF, v::Int)
 	s = filter(x -> x.snake.id == id, snake_states(bfs))
 	length(s) == 1 || throw("length(s) = $(length(s)) not possible")
 	g = bfs.generation
-	return s[1].snake.health > g
+	return s[1].snake.health + s[1].power_boost > g
 end
 
 function gen(bfs::SnakeBFS)
@@ -96,6 +97,7 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 		if s.has_eaten
 			s.tail_lag += 1
 			s.has_eaten = false
+			s.power_boost += 100
 		end
 	end
 end
@@ -119,7 +121,7 @@ function initialise(cls::Array{Cell,2}, S::Array{Snake,1})
 			push!(exp, n)
 			cnt += 1
 		end
-		push!(states, SnakeState(snake, ExpSet([], exp), false, 0))
+		push!(states, SnakeState(snake, ExpSet([], exp), false, 0, 0))
 	end
 	gen(cls, states, 1)
 	N = cnt - 1
@@ -320,13 +322,13 @@ end
 function explore!(init, bfs, uf, ss, x; no_merge=false)
 	v = cluster(init, x)
 	isalive(bfs, uf, v) || return 
+	canvisit(bfs, x) || return
 	maybe_eat(bfs, ss, x)
 	N = bfs_neighbours(bfs, x)
 
 	@inbounds for j=1:length(N)
 		n = N[j]
 		nx, ny = n[1], n[2]
-		!canvisit(bfs, n) && continue
 		if visited(init, n)
 			bfs.cells[x...].ishead && continue
 			k = cluster(init, n)
