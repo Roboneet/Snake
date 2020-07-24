@@ -14,7 +14,15 @@
 # - cells : Graph for bfs
 # - result matrix : Graph for union find, visited set for bfs
 
-const RBuf = Array{Int64,2}
+struct RCState
+	board
+	bfs
+	uf
+end
+
+unwrap(rc::RCState) = (rc.board, rc.bfs, rc.uf,)
+
+const RBuf = Array{Int64,2} # this probably means Reachable Buffer
 
 mutable struct ExpSet
 	current::Array{Tuple{Int,Int},1}
@@ -60,12 +68,9 @@ function Base.push!(exp::ExpSet, ele::Tuple{Int,Int})
 	push!(next(exp), ele)
 end
 
-function isalive(bfs::SnakeBFS, uf::SnakeUF, v::Int)
-	id = uf.clusters[v].snake
-	s = filter(x -> x.snake.id == id, snake_states(bfs))
-	length(s) == 1 || throw("length(s) = $(length(s)) not possible")
-	g = bfs.generation
-	return s[1].snake.health + s[1].power_boost > g
+function isalive(bfs::SnakeBFS, ss::SnakeState)
+	snake = ss.snake
+	return snake.alive && snake.health + ss.power_boost > bfs.generation
 end
 
 function gen(bfs::SnakeBFS)
@@ -109,13 +114,14 @@ function initialise(cls::Array{Cell,2}, S::Array{Snake,1})
 	states = SnakeState[]
 	@inbounds for i=1:length(S)
 		snake = S[i]
+		snake.alive || continue
 		N = neighbours(head(snake), size(cls)...)
 		exp = Tuple{Int,Int}[]
 		foreach(N) do n
 			nx, ny = n[1], n[2]
 			init[nx, ny] != -1 && return
 			cell = cls[nx, ny]
-			hassnake(cell) && return
+			hassnake(cell) && !cell.istail && return
 			roots[cnt] = id(snake)
 			init[nx, ny] = cnt
 			push!(exp, n)
@@ -125,19 +131,11 @@ function initialise(cls::Array{Cell,2}, S::Array{Snake,1})
 	end
 	gen(cls, states, 1)
 	N = cnt - 1
-	cids = Int[1:N...]
-	clens = ones(Int, N)
-	return init, SnakeBFS(cls, states, 1), SnakeUF(map(
-										  x -> ClusterInfo(x, 1, x, roots[x]), 1:N))
+	return RCState(init, 
+				   SnakeBFS(cls, states, 1), 
+				   SnakeUF(map(x -> ClusterInfo(x, 1, x, roots[x]), 1:N))
+	)
 end
-
-struct RCState
-	board
-	bfs
-	uf
-end
-
-unwrap(rc::RCState) = (rc.board, rc.bfs, rc.uf,)
 
 function ctop(uf::SnakeUF, c::Int)
 	c == -1 && return c
@@ -249,6 +247,16 @@ function Base.parent(uf::SnakeUF, c::Int)
 	return C[c].parent
 end
 
+compile(r::RCState) = compile(unwrap(r)...)
+function compile(init::RBuf, bfs::SnakeBFS, uf::SnakeUF)
+	roots = Dict{Int, Array{Int,1}}()
+	S = bfs.snake_states
+	for i=1:length(S)
+		roots[S[i].snake.id] = Int[]
+	end
+	return compile!(uf, init, roots)
+end
+
 function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 	compile!(uf, roots)
 	d = Dict{Int,Int}()
@@ -265,21 +273,9 @@ function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 end
 
 function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
-	S = filter(alive, snks)
-	length(S) == 0 && return zeros(size(cls)), Dict(0=>prod(size(cls)...))
-
-	S = sort(S, by=length, rev=true)
-	init, bfs, uf = initialise(cls, S)
-
-	# exploration
-	explore!(init, bfs, uf; kwargs...)	
-
-	roots = Dict{Int, Array{Int,1}}()
-	for i=1:length(S)
-		roots[S[i].id] = Int[]
-	end
-	res = compile!(uf, init, roots)
-	return res
+	rcstate = initialise(cls, snks) 
+	explore!(rcstate; kwargs...)	
+	return compile(rcstate)
 end
 
 function determine_snake_order!(bfs::SnakeBFS)
@@ -289,7 +285,9 @@ function determine_snake_order!(bfs::SnakeBFS)
 				alg = Base.Sort.InsertionSort) 
 end
 
-function explore!(init, bfs, uf; kwargs...)
+explore!(r::RCState; kwargs...) = explore!(unwrap(r)...; kwargs...)
+
+function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 	while !isdone(bfs)
 		determine_snake_order!(bfs)
 		ordered_states = bfs.snake_states
@@ -321,7 +319,7 @@ end
 
 function explore!(init, bfs, uf, ss, x; no_merge=false)
 	v = cluster(init, x)
-	isalive(bfs, uf, v) || return 
+	isalive(bfs, ss) || return 
 	canvisit(bfs, x) || return
 	maybe_eat(bfs, ss, x)
 	N = bfs_neighbours(bfs, x)
