@@ -5,8 +5,8 @@
 # just move avoiding obstacles
 struct Basic <: AbstractAlgo end
 
-findmoves(algo::Type{T}, s::SType) where T <: AbstractAlgo = ntuple(x -> findmove(algo, s, x), length(s.snakes))
-function findmove(algo::Type{T}, s::SType, i::Int; kwargs...) where T <: AbstractAlgo
+findmoves(algo, s::SType) = ntuple(x -> findmove(algo, s, x), length(s.snakes))
+function findmove(algo, s::SType, i::Int; kwargs...)
 	!alive(s.snakes[i]) && return (0,0)
 	rand(pipe(algo, s, i; kwargs...)(DIRECTIONS))
 end

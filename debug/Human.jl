@@ -34,3 +34,19 @@ function getmoves(::Type{Human}, st::SType, i::Int, l::UInt32)
     !in(k, b) && return b
     return [k]
 end
+
+# struct Client <: AbstractExternal
+# 	ip
+# 	port
+# end
+
+# function pipe(c::Client, st::SType, i::Int)
+# 	getmove(c, st, i)
+# end
+
+# using Sockets
+
+# function getmove(c::Client, st::SType, i::Int)
+# 	sock = connect
+
+# end
