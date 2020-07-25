@@ -112,24 +112,27 @@ function initialise(cls::Array{Cell,2}, S::Array{Snake,1})
 	roots = Dict{Int,Int}()
 	cnt = 1
 	states = SnakeState[]
-	@inbounds for i=1:length(S)
+	S = determine_snake_order(S)
+	@inbounds for i=1:length(S) 
 		snake = S[i]
-		snake.alive || continue
-		N = neighbours(head(snake), size(cls)...)
-		exp = Tuple{Int,Int}[]
+		snake.alive || continue 
+		push!(states, SnakeState(snake, ExpSet([], []), false, 0, 0))
+	end
+	gen(cls, states, 1)
+	@inbounds for i=1:length(states)
+		ss = states[i]
+		N = neighbours(head(ss.snake), size(cls)...)
 		foreach(N) do n
 			nx, ny = n[1], n[2]
 			init[nx, ny] != -1 && return
 			cell = cls[nx, ny]
-			hassnake(cell) && !cell.istail && return
-			roots[cnt] = id(snake)
+			hassnake(cell) && return
+			roots[cnt] = id(ss.snake)
 			init[nx, ny] = cnt
-			push!(exp, n)
+			push!(ss, n)
 			cnt += 1
 		end
-		push!(states, SnakeState(snake, ExpSet([], exp), false, 0, 0))
 	end
-	gen(cls, states, 1)
 	N = cnt - 1
 	return RCState(init, 
 				   SnakeBFS(cls, states, 1), 
@@ -285,10 +288,18 @@ function determine_snake_order!(bfs::SnakeBFS)
 				alg = Base.Sort.InsertionSort) 
 end
 
+function determine_snake_order(snakes::Array{Snake,1})
+	sort(snakes,
+				by = length,
+				rev = true,
+				alg = Base.Sort.InsertionSort) 
+end 
+
 explore!(r::RCState; kwargs...) = explore!(unwrap(r)...; kwargs...)
 
 function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 	while !isdone(bfs)
+		gen(bfs) # move tails
 		determine_snake_order!(bfs)
 		ordered_states = bfs.snake_states
 
@@ -300,11 +311,11 @@ function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 			ss = ordered_states[k]
 			explore!(init, bfs, uf, ss; kwargs...) 
 		end 
-		gen(bfs)
 	end
 end
 
-function explore!(init, bfs, uf, ss; kwargs...)
+function explore!(init, bfs, uf, ss; kwargs...) 
+	isalive(bfs, ss) || return 
 	c = current(ss)
 	for i=1:length(c)
 		x = c[i]
@@ -319,19 +330,16 @@ end
 
 function explore!(init, bfs, uf, ss, x; no_merge=false)
 	v = cluster(init, x)
-	isalive(bfs, ss) || return 
-	canvisit(bfs, x) || return
 	maybe_eat(bfs, ss, x)
 	N = bfs_neighbours(bfs, x)
 
 	@inbounds for j=1:length(N)
 		n = N[j]
 		nx, ny = n[1], n[2]
+		canvisit(bfs, n) || continue
 		if visited(init, n)
-			bfs.cells[x...].ishead && continue
 			k = cluster(init, n)
 			(no_merge || !should_merge(uf, k, v)) && continue
-			# merge k and v clusters
 			merge_cls(uf, k, v)
 		else
 			cluster!(uf, init, n, parent(uf, v))
