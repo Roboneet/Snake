@@ -110,9 +110,12 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 	# @show alive(fr.state.snakes[i])
 	!alive(fr.state.snakes[i]) && return 0
 	# display(fr)
+	
 	c, d, l = listclusters(fr.state, i)
 	st = fr.state
-
+	spacevalue(st, i, c, d, l, cap)
+end
+function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	ne = nempty(width(st), height(st), d, mode(st), length(st.snakes[i]))
 
 	if ne == 0

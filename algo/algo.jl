@@ -4,6 +4,7 @@ include("../env/Snake.jl")
 
 include("frames.jl")
 include("clustering.jl")
+include("partialexplore.jl")
 include("utils.jl")
 include("Lookahead.jl")
 include("Value.jl")

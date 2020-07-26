@@ -21,6 +21,7 @@ struct RCState
 end
 
 unwrap(rc::RCState) = (rc.board, rc.bfs, rc.uf,)
+Base.show(io::IO, rc::RCState) = println(io, colorarray(rc.board))
 
 const RBuf = Array{Int64,2} # this probably means Reachable Buffer
 
@@ -37,6 +38,11 @@ mutable struct SnakeState
 	power_boost::Int
 end
 
+SnakeState(snake::Snake, h::Array{Tuple{Int,Int},1}) = 
+SnakeState(snake, ExpSet([], h), false, 0, 0)
+
+SnakeState(snake::Snake) = SnakeState(snake, Tuple{Int,Int}[])
+
 mutable struct SnakeBFS
 	cells::Array{Cell,2}
 	snake_states::Array{SnakeState,1}
@@ -50,6 +56,8 @@ mutable struct ClusterInfo
 	snake::Int
 end
 
+ClusterInfo(x, y) = ClusterInfo(x, 1, x, y)
+
 struct SnakeUF{C}
 	clusters::C
 end
@@ -57,15 +65,12 @@ end
 current(exp::ExpSet) = exp.current
 next(exp::ExpSet) = exp.next
 
-function swap!(exp::ExpSet)
-	c = current(exp)
-	exp.current = exp.next
-	exp.next = c
-	return exp
-end
-
 function Base.push!(exp::ExpSet, ele::Tuple{Int,Int})
 	push!(next(exp), ele)
+end
+
+function Base.push!(uf::SnakeUF, ele::ClusterInfo)
+	push!(uf.clusters, ele)
 end
 
 function isalive(bfs::SnakeBFS, ss::SnakeState)
@@ -73,21 +78,20 @@ function isalive(bfs::SnakeBFS, ss::SnakeState)
 	return snake.alive && snake.health + ss.power_boost > bfs.generation
 end
 
-function gen(bfs::SnakeBFS)
-	bfs.generation = bfs.generation + 1
-	gen(bfs.cells, bfs.snake_states, bfs.generation)
-end
-
 function switch!(exp::ExpSet)
 	exp.current = exp.next
 	exp.next = []
 end
 
+function gen(bfs::SnakeBFS)
+	bfs.generation = bfs.generation + 1
+	gen(bfs.cells, bfs.snake_states, bfs.generation)
+end 
+
 function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 	for j=1:length(S)
 		s = S[j]
 		switch!(exp(s))
-		
 		snake_tail = i - s.tail_lag
 		trail = s.snake.trail
 		if (length(s.snake) >= snake_tail && 
@@ -107,37 +111,26 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 	end
 end
 
-function initialise(cls::Array{Cell,2}, S::Array{Snake,1})
-	init = matrix(cls; default=-1)
-	roots = Dict{Int,Int}()
-	cnt = 1
-	states = SnakeState[]
-	S = determine_snake_order(S)
-	@inbounds for i=1:length(S) 
-		snake = S[i]
-		snake.alive || continue 
-		push!(states, SnakeState(snake, ExpSet([], []), false, 0, 0))
-	end
-	gen(cls, states, 1)
-	@inbounds for i=1:length(states)
-		ss = states[i]
-		N = neighbours(head(ss.snake), size(cls)...)
-		foreach(N) do n
-			nx, ny = n[1], n[2]
-			init[nx, ny] != -1 && return
-			cell = cls[nx, ny]
-			hassnake(cell) && return
-			roots[cnt] = id(ss.snake)
-			init[nx, ny] = cnt
-			push!(ss, n)
-			cnt += 1
-		end
-	end
-	N = cnt - 1
-	return RCState(init, 
-				   SnakeBFS(cls, states, 1), 
-				   SnakeUF(map(x -> ClusterInfo(x, 1, x, roots[x]), 1:N))
+function create(cls::Array{Cell,2}, S::Array{Snake,1})
+	return RCState(matrix(cls; default=-1), 
+				   SnakeBFS(cls, map(x -> SnakeState(x), S), 0), 
+				   SnakeUF(ClusterInfo[])
 	)
+end
+
+markheads(rcstate::RCState) = markheads(rcstate, rcstate.bfs.snake_states)
+
+function markheads(rcstate::RCState, ss::Array{SnakeState,1})
+	for s in ss
+		markhead(rcstate, s, head(s.snake))
+	end
+end
+
+function markhead(rcstate::RCState, ss::SnakeState, x::Tuple{Int,Int})
+	if rcstate.board[x...] == -1
+		rcstate.board[x...] = 0
+		push!(ss, x) 
+	end
 end
 
 function ctop(uf::SnakeUF, c::Int)
@@ -195,15 +188,6 @@ end
 
 current(ss::SnakeState) = current(exp(ss))
 
-function next(bfs::SnakeBFS)
-	should_swap(exp(bfs)) || 
-	return popfirst!(current(exp(bfs)))
-
-	swap!(exp(bfs))
-	gen(bfs)
-	next(bfs)
-end
-
 function bfs_neighbours(bfs::SnakeBFS, x::Tuple{Int,Int})
 	return neighbours(x, size(bfs.cells)...)
 end
@@ -214,7 +198,7 @@ function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
 end
 
 function visited(init::RBuf, n::Tuple{Int,Int})
-	return cluster(init, n) != -1
+	return cluster(init, n) > 0
 end
 
 function cluster(init::RBuf, n::Tuple{Int,Int})
@@ -276,7 +260,8 @@ function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 end
 
 function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
-	rcstate = initialise(cls, snks) 
+	rcstate = create(cls, snks) 
+	markheads(rcstate)
 	explore!(rcstate; kwargs...)	
 	return compile(rcstate)
 end
@@ -299,24 +284,34 @@ explore!(r::RCState; kwargs...) = explore!(unwrap(r)...; kwargs...)
 
 function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 	while !isdone(bfs)
-		gen(bfs) # move tails
-		determine_snake_order!(bfs)
-		ordered_states = bfs.snake_states
-
-		# println(colorarray(init))
-		# readline()
-		# __cls__()
-
-		for k=1:length(ordered_states)
-			ss = ordered_states[k]
-			explore!(init, bfs, uf, ss; kwargs...) 
-		end 
+		explore_once!(init, bfs, uf, kwargs...)
 	end
 end
 
+function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
+	gen(bfs) # move tails
+	determine_snake_order!(bfs)
+	ordered_states = bfs.snake_states
+
+	# println(colorarray(init))
+	# showcells(stdout, bfs.cells)
+	# readline()
+	# __cls__()
+
+	for k=1:length(ordered_states)
+		ss = ordered_states[k]
+		explore!(init, bfs, uf, ss; kwargs...) 
+	end 
+end
+
 function explore!(init, bfs, uf, ss; kwargs...) 
-	isalive(bfs, ss) || return 
 	c = current(ss)
+	if !isalive(bfs, ss)
+		for i=1:length(c)
+			init[c[i]...] = -1
+		end
+		return
+	end
 	for i=1:length(c)
 		x = c[i]
 		explore!(init, bfs, uf, ss, x; kwargs...)
@@ -326,25 +321,47 @@ end
 function maybe_eat(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int})
 	c = bfs.cells
 	ss.has_eaten = c[x...].food 
+	if c[x...].food
+		c[x...].food = false
+	end
 end
 
-function explore!(init, bfs, uf, ss, x; no_merge=false)
-	v = cluster(init, x)
-	maybe_eat(bfs, ss, x)
+function spawn_cls(init, bfs, uf, ss, x) 
 	N = bfs_neighbours(bfs, x)
+	foreach(N) do n
+		canvisit(bfs, n) || return
+		visited(init, n) && return
+		cnt = length(uf.clusters) + 1
+		init[n...] = cnt
+		push!(ss, n)
+		push!(uf, ClusterInfo(cnt, id(ss.snake)))
+	end
+end 
 
+function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF, 
+			 ss::SnakeState, x::Tuple{Int,Int}; no_merge=false)
+	maybe_eat(bfs, ss, x) 
+
+	v = cluster(init, x)
+	if v == 0
+		spawn_cls(init, bfs, uf, ss, x) 
+		return
+	end
+	v == -1 && return
+
+	N = bfs_neighbours(bfs, x) 
 	@inbounds for j=1:length(N)
 		n = N[j]
 		nx, ny = n[1], n[2]
+		init[n...] == 0 && continue # dont visit a prev head
 		canvisit(bfs, n) || continue
 		if visited(init, n)
 			k = cluster(init, n)
-			(no_merge || !should_merge(uf, k, v)) && continue
+			(!no_merge && should_merge(uf, k, v)) || continue
 			merge_cls(uf, k, v)
 		else
 			cluster!(uf, init, n, parent(uf, v))
 			push!(ss, n)
 		end
 	end		
-end
-
+end 
