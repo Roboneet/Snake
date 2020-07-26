@@ -488,9 +488,9 @@ function partition(snakes::AbstractArray{Snake,1}, ms::AbstractVector{<:Abstract
 end
 
 
-function reachableclusters(s::SType, i=nothing; kwargs...)
+function reachableclusters(s::SType, i=1; kwargs...)
 	cls = cells(s)
-	return reachableclusters(cls, s.snakes; kwargs...)
+	return reachableclusters(cls, s.snakes; pref=i, kwargs...)
 end
 
 function colorarray(g::Array{Int,2}, d::Dict{Int,Int},

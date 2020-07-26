@@ -36,7 +36,7 @@ function partialexplore(st::SType, snakeid::Int, moves::Array{Tuple{Int,Int},1};
 		m = moves[i]
 		p[snakeid] = m
 		# @show p
-		rcstate = create(cells(st), st.snakes; moves=p) 
+		rcstate = create(cells(st), st.snakes; moves=p, pref=snakeid) 
 		markheads(rcstate)
 		explore!(rcstate; kwargs...) 
 		push!(rcs, rcstate)

@@ -48,6 +48,7 @@ mutable struct SnakeBFS
 	cells::Array{Cell,2}
 	snake_states::Array{SnakeState,1}
 	generation::Int
+	sort_preference::Int
 end
 
 mutable struct ClusterInfo
@@ -113,10 +114,13 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 	end
 end
 
-function create(cls::Array{Cell,2}, S::Array{Snake,1}; moves=map(x->nothing,S))
+function create(cls::Array{Cell,2}, S::Array{Snake,1}; 
+				moves=map(x->nothing,S), pref=1, kwargs...)
 	# @show moves
 	return RCState(matrix(cls; default=-1), 
-				   SnakeBFS(cls, map(x -> SnakeState(S[x], moves[x]), 1:length(S)), 0),
+				   SnakeBFS(cls, 
+							map(x -> SnakeState(S[x], moves[x]), 1:length(S)),
+							0, pref),
 				   SnakeUF(ClusterInfo[])
 	)
 end
@@ -199,7 +203,9 @@ function bfs_neighbours(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}; isspaw
 	end
 	return neighbours(x, size(bfs.cells)...)
 end
+
 cells(bfs::SnakeBFS) = bfs.cells
+
 function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
 	cell = cells(bfs)[x...]
 	return !hassnake(cell)
@@ -268,17 +274,26 @@ function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 end
 
 function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
-	rcstate = create(cls, snks) 
+	rcstate = create(cls, snks; kwargs...) 
 	markheads(rcstate)
 	explore!(rcstate; kwargs...)	
 	return compile(rcstate)
 end
 
+function sortValue(ss::SnakeState, i::Int)
+	v = 0.1 + length(ss.snake) + ss.tail_lag
+	if ss.snake.id == i
+		v += 0.1
+	end 
+	return v
+end 
+
 function determine_snake_order!(bfs::SnakeBFS)
+	sp = bfs.sort_preference
 	sort!(bfs.snake_states,
-				by = ss -> length(ss.snake) + ss.tail_lag,
-				rev = true,
-				alg = Base.Sort.InsertionSort) 
+		  by = ss -> sortValue(ss, sp),
+		  rev = true,
+		  alg = Base.Sort.InsertionSort) 
 end
 
 function determine_snake_order(snakes::Array{Snake,1})
@@ -350,8 +365,7 @@ function spawn_cls(init, bfs, uf, ss, x)
 end 
 
 function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF, 
-			 ss::SnakeState, x::Tuple{Int,Int})
-
+			 ss::SnakeState, x::Tuple{Int,Int}; kwargs...) 
 	v = cluster(init, x)
 	if v == 0
 		spawn_cls(init, bfs, uf, ss, x) 
