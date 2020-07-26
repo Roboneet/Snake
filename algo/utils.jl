@@ -192,6 +192,7 @@ flow(fs...) = flow(fs)
 function flow(fs)
 	function br(f, g)
 		return x -> begin
+			length(x) == 1 && return x
 		    l = f(x)
 		    isempty(l) && return x
 		    length(l) == 1 && return l
@@ -269,13 +270,8 @@ function astar(cls::AbstractArray{Cell,2}, I, Js, dir; kwargs...)
 	block_food = zeros(length(dir), length(Js))
 	for j=1:length(Js), i=1:length(dir)
 		block = I .+ dir[i]
-		# @show dir[i], kwargs
-		# @show block, Js[j]
 		block_food[i, j] = shortest_distance(cls, block, Js[j]; kwargs...)
 	end
-	# @show dir
-	# @show block_food
-
 	r = minimum(block_food)
 	good_moves = findall(block_food .== r)
 	return unique(map(x -> dir[x[1]], good_moves))

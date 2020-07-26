@@ -36,12 +36,13 @@ mutable struct SnakeState
 	has_eaten::Bool
 	tail_lag::Int
 	power_boost::Int
+	move::Union{Tuple{Int,Int},Nothing}
 end
 
-SnakeState(snake::Snake, h::Array{Tuple{Int,Int},1}) = 
-SnakeState(snake, ExpSet([], h), false, 0, 0)
+SnakeState(snake::Snake, h::Array{Tuple{Int,Int},1}, m) = 
+SnakeState(snake, ExpSet([], h), false, 0, 0, m)
 
-SnakeState(snake::Snake) = SnakeState(snake, Tuple{Int,Int}[])
+SnakeState(snake::Snake, m) = SnakeState(snake, Tuple{Int,Int}[], m)
 
 mutable struct SnakeBFS
 	cells::Array{Cell,2}
@@ -93,6 +94,7 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 		s = S[j]
 		switch!(exp(s))
 		snake_tail = i - s.tail_lag
+		# @show s.tail_lag
 		trail = s.snake.trail
 		if (length(s.snake) >= snake_tail && 
 			!s.has_eaten &&
@@ -111,9 +113,10 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 	end
 end
 
-function create(cls::Array{Cell,2}, S::Array{Snake,1})
+function create(cls::Array{Cell,2}, S::Array{Snake,1}; moves=map(x->nothing,S))
+	# @show moves
 	return RCState(matrix(cls; default=-1), 
-				   SnakeBFS(cls, map(x -> SnakeState(x), S), 0), 
+				   SnakeBFS(cls, map(x -> SnakeState(S[x], moves[x]), 1:length(S)), 0),
 				   SnakeUF(ClusterInfo[])
 	)
 end
@@ -188,7 +191,12 @@ end
 
 current(ss::SnakeState) = current(exp(ss))
 
-function bfs_neighbours(bfs::SnakeBFS, x::Tuple{Int,Int})
+function bfs_neighbours(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}; isspawn::Bool = false)
+	# @show isspawn, ss.move
+	if isspawn && ss.move != nothing
+		m = ss.move .+ x
+		return [m]
+	end
 	return neighbours(x, size(bfs.cells)...)
 end
 cells(bfs::SnakeBFS) = bfs.cells
@@ -284,24 +292,26 @@ explore!(r::RCState; kwargs...) = explore!(unwrap(r)...; kwargs...)
 
 function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 	while !isdone(bfs)
-		explore_once!(init, bfs, uf, kwargs...)
+		explore_once!(init, bfs, uf; kwargs...)
 	end
 end
 
-function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
+function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; verbose=false, kwargs...)
 	gen(bfs) # move tails
 	determine_snake_order!(bfs)
 	ordered_states = bfs.snake_states
-
-	# println(colorarray(init))
-	# showcells(stdout, bfs.cells)
-	# readline()
-	# __cls__()
 
 	for k=1:length(ordered_states)
 		ss = ordered_states[k]
 		explore!(init, bfs, uf, ss; kwargs...) 
 	end 
+	if verbose
+		println(colorarray(init))
+		showcells(stdout, bfs.cells)
+		@show bfs.generation
+		readline()
+		__cls__()
+	end
 end
 
 function explore!(init, bfs, uf, ss; kwargs...) 
@@ -321,16 +331,17 @@ end
 function maybe_eat(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int})
 	c = bfs.cells
 	ss.has_eaten = c[x...].food 
-	if c[x...].food
-		c[x...].food = false
-	end
+	# @show ss.has_eaten
+	c[x...].food = false
 end
 
 function spawn_cls(init, bfs, uf, ss, x) 
-	N = bfs_neighbours(bfs, x)
+	N = bfs_neighbours(bfs, ss, x; isspawn=true)
 	foreach(N) do n
+		# @show canvisit(bfs, n)
 		canvisit(bfs, n) || return
 		visited(init, n) && return
+		maybe_eat(bfs, ss, n) 
 		cnt = length(uf.clusters) + 1
 		init[n...] = cnt
 		push!(ss, n)
@@ -339,27 +350,28 @@ function spawn_cls(init, bfs, uf, ss, x)
 end 
 
 function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF, 
-			 ss::SnakeState, x::Tuple{Int,Int}; no_merge=false)
-	maybe_eat(bfs, ss, x) 
+			 ss::SnakeState, x::Tuple{Int,Int})
 
 	v = cluster(init, x)
 	if v == 0
 		spawn_cls(init, bfs, uf, ss, x) 
+		init[x...] = -1
 		return
 	end
 	v == -1 && return
 
-	N = bfs_neighbours(bfs, x) 
+	N = bfs_neighbours(bfs, ss, x) 
 	@inbounds for j=1:length(N)
 		n = N[j]
 		nx, ny = n[1], n[2]
-		init[n...] == 0 && continue # dont visit a prev head
+		# init[n...] == 0 && continue # dont visit a prev head
 		canvisit(bfs, n) || continue
 		if visited(init, n)
 			k = cluster(init, n)
-			(!no_merge && should_merge(uf, k, v)) || continue
+			should_merge(uf, k, v) || continue
 			merge_cls(uf, k, v)
-		else
+		else 
+			maybe_eat(bfs, ss, n) 
 			cluster!(uf, init, n, parent(uf, v))
 			push!(ss, n)
 		end

@@ -9,6 +9,7 @@ algoDict["kettle"] = Kettle
 algoDict["wip"] = sls(4)
 algoDict["rainbow"] = Earthworm{3,Grenade,TreeSearch{NotBad,Punk,SeqLocalSearch{2}}}
 algoDict["antimatter"] = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
+algoDict["diamond"] = PartialExplore
 
 function whichalgo(req)
     if haskey(req, :params)

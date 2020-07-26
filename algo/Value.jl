@@ -117,6 +117,7 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 end
 function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	ne = nempty(width(st), height(st), d, mode(st), length(st.snakes[i]))
+	# @show ne
 
 	if ne == 0
 		println(fr)
@@ -168,7 +169,7 @@ end
 
 function nempty(w::Int, h::Int, s::Dict{Int,Int}, mode, len::Int)
 	if mode == SINGLE_PLAYER_MODE
-		return w*h - len
+		return w*h
 	end
 	k = sum(collect(values(s)))
 	k == 0 && return w*h

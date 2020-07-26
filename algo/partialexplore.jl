@@ -5,10 +5,11 @@ pipe(::Type{PartialExplore}, s, i) = flow(
 										  partialexplore(s, i), 
 										  closestreachablefood(s, i))
 
-function partialexplore(st::SType, i::Int) 
+function partialexplore(st::SType, i::Int; kwargs...)
 	return dirs -> begin
-		rcs = partialexplore(create(cells(st), st.snakes), i, dirs)
-		return select(st, i,dirs, rcs)
+		# @show dirs 
+		rcs = partialexplore(st, i, dirs; kwargs...)
+		return select(st, i,dirs, rcs; kwargs...)
 	end
 end
 
@@ -28,42 +29,30 @@ function copyss(ss::SnakeState)
 
 end
 
-function partialexplore(rc::RCState, snakeid::Int, moves::Array{Tuple{Int,Int},1})
-	for i=1:length(rc.bfs.snake_states)
-		ss = rc.bfs.snake_states[i]
-		ss.snake.id == snakeid && continue
-		markhead(rc, ss, head(ss.snake))
-	end
-
-	mysnake = filter(x -> id(x.snake) == snakeid, rc.bfs.snake_states)[1].snake
-	explore_once!(rc.board, rc.bfs, rc.uf)
-	rcs = map(x -> copyrc(rc), moves)
-
-	h = head(mysnake)
-	# push!(mysnake.trail, (0, 0))
-
+function partialexplore(st::SType, snakeid::Int, moves::Array{Tuple{Int,Int},1}; kwargs...)
+	rcs = []
+	p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
 	for i=1:length(moves)
 		m = moves[i]
-		rc_ = rcs[i]
-
-		mysnakestate = filter(x -> id(x.snake) == snakeid, rc_.bfs.snake_states)[1]
-		c = h .+ m
-		markhead(rc_, mysnakestate, c)
-		# mysnake.trail[end] = c
-		
-		explore!(rc_)
+		p[snakeid] = m
+		# @show p
+		rcstate = create(cells(st), st.snakes; moves=p) 
+		markheads(rcstate)
+		explore!(rcstate; kwargs...) 
+		push!(rcs, rcstate)
 	end
-	# pop!(mysnake.trail)
 	return rcs
 end
 
-function select(st, snakeid, moves, rcs)
+function select(st, snakeid, moves, rcs; verbose=false)
 	values = Dict{Tuple{Int,Int},Int}()
 	for i=1:length(rcs) 
 		mat, clens, root = compile(rcs[i])
-		# @show moves[i]
-		# println(colorarray(mat))
-		# println(root)
+		if verbose
+			@show moves[i]
+			println(colorarray(mat))
+			println(root)
+		end
 		v = spacevalue(st, snakeid, mat, clens, root[snakeid])
 		me = filter(x -> id(x.snake) == snakeid, rcs[i].bfs.snake_states)[1]
 		l = me.tail_lag + 1

@@ -99,7 +99,11 @@ function end_(sc::Screen, fr)
 	show_cursor(sc.term)
 end
 
-function play(algos, env; verbose=false)
+function play(algos::Array, size::Tuple{Int,Int}; kwargs...)
+	play(algos, SnakeEnv(size, length(algos)); kwargs...)
+end
+
+function play(algos::Array, env::SnakeEnv; verbose=false)
 	reset!(env)
 	N = Nsnakes(env)
 
