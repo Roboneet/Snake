@@ -104,7 +104,7 @@ function play(algos::Array, size::Tuple{Int,Int}; kwargs...)
 end
 
 function play(algos::Array, env::SnakeEnv; verbose=false)
-	reset!(env)
+	# reset!(env)
 	N = Nsnakes(env)
 
 	sc = verbose ? Screen() : nothing

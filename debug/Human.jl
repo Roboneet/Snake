@@ -10,7 +10,7 @@ getmoves(::Type{T}, st::SType, i::Int, l::UInt32) where T <: AbstractExternal =
 function pipe(::Type{T}, st, i) where T <: AbstractExternal
     return  y -> begin
         c, d, r = reachableclusters(cells(st), st.snakes)
-        println(colorarray(c, d, r, i))
+        # println(colorarray(c, d, r, i))
         l = TerminalMenus.readKey(input_src(T))
         return getmoves(T, st, i, l)
     end

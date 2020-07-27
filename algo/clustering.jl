@@ -281,10 +281,10 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
 end
 
 function sortValue(ss::SnakeState, i::Int)
-	v = 0.1 + length(ss.snake) + ss.tail_lag
-	if ss.snake.id == i
-		v += 0.1
-	end 
+	v = length(ss.snake) + ss.tail_lag
+	# if ss.snake.id == i
+	# 	v += 0.1
+	# end 
 	return v
 end 
 
