@@ -49,6 +49,7 @@ mutable struct SnakeBFS
 	snake_states::Array{SnakeState,1}
 	generation::Int
 	sort_preference::Int
+	gboard::RBuf # keeps track of the generation at which a cell is visited
 end
 
 mutable struct ClusterInfo
@@ -120,7 +121,7 @@ function create(cls::Array{Cell,2}, S::Array{Snake,1};
 	return RCState(matrix(cls; default=-1), 
 				   SnakeBFS(cls, 
 							map(x -> SnakeState(S[x], moves[x]), 1:length(S)),
-							0, pref),
+							0, pref, matrix(cls; default=-1)),
 				   SnakeUF(ClusterInfo[])
 	)
 end
@@ -164,6 +165,7 @@ function merge_cls(uf::SnakeUF, k::Int, v::Int)
 end
 
 function should_merge(uf::SnakeUF, k::Int, v::Int)
+	(k == -1 || v == -1) && return false
 	C = uf.clusters
 	return !((k == v) ||  # ancestor
 			 (C[k].snake != C[v].snake) ||  # a bigger snake reached here first
@@ -211,8 +213,9 @@ function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
 	return !hassnake(cell)
 end
 
-function visited(init::RBuf, n::Tuple{Int,Int})
-	return cluster(init, n) > 0
+function visited(bfs::SnakeBFS, n::Tuple{Int,Int})
+	# return cluster(init, n) > 0
+	return bfs.gboard[n...] != -1
 end
 
 function cluster(init::RBuf, n::Tuple{Int,Int})
@@ -263,7 +266,7 @@ function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 	d = Dict{Int,Int}()
 	@inbounds for j=1:size(init)[2], i=1:size(init)[1]
 		c = cluster(init, (i, j))
-		!visited(init, (i, j)) && continue
+		c > 0 || continue
 		k = parent(uf, c)
 		init[i, j] = k # final cluster id
 		if !haskey(d, k)
@@ -350,17 +353,48 @@ function maybe_eat(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int})
 	c[x...].food = false
 end
 
-function spawn_cls(init, bfs, uf, ss, x) 
+function markgen(bfs::SnakeBFS, x::Tuple{Int,Int})
+	bfs.gboard[x...] = bfs.generation
+end
+
+root(uf::SnakeUF, v::Int) = uf.clusters[v].snake
+rootsnake(bfs::SnakeBFS, r::Int) = filter(x -> id(x.snake) == r, bfs.snake_states)[1]
+compute_len(rs::SnakeState) = rs.tail_lag + length(rs.snake)
+
+# incase snakes with equal lengths visit a spot
+function should_unvisit(init, bfs, uf, ss, x)
+	bfs.generation != bfs.gboard[x...] && return false
+	v = cluster(init, x)
+	r = root(uf, v)
+	r == ss.snake.id && return false
+	rs = rootsnake(bfs, r)
+	return compute_len(rs) <= compute_len(ss)
+end
+
+function destroy(init::RBuf, x::Tuple{Int,Int})
+	init[x...] = -1
+end
+
+function is_destroyed(init::RBuf, n::Tuple{Int, Int})
+	return init[n...] == -1
+end
+
+function spawn_cls(init::RBuf, bfs::SnakeBFS, uf::SnakeUF, ss::SnakeState, x::Tuple{Int,Int}) 
 	N = bfs_neighbours(bfs, ss, x; isspawn=true)
 	foreach(N) do n
-		# @show canvisit(bfs, n)
 		canvisit(bfs, n) || return
-		visited(init, n) && return
-		maybe_eat(bfs, ss, n) 
-		cnt = length(uf.clusters) + 1
-		init[n...] = cnt
-		push!(ss, n)
-		push!(uf, ClusterInfo(cnt, id(ss.snake)))
+		if visited(bfs, n) 
+			is_destroyed(init, n) && return
+			should_unvisit(init, bfs, uf, ss, n) || return
+			destroy(init, n)
+		else
+			maybe_eat(bfs, ss, n) 
+			cnt = length(uf.clusters) + 1
+			init[n...] = cnt
+			push!(ss, n)
+			push!(uf, ClusterInfo(cnt, id(ss.snake)))
+			markgen(bfs, n)
+		end
 	end
 end 
 
@@ -369,10 +403,10 @@ function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF,
 	v = cluster(init, x)
 	if v == 0
 		spawn_cls(init, bfs, uf, ss, x) 
-		init[x...] = -1
+		destroy(init, x)
 		return
 	end
-	v == -1 && return
+	is_destroyed(init, x) && return
 
 	N = bfs_neighbours(bfs, ss, x) 
 	@inbounds for j=1:length(N)
@@ -380,14 +414,19 @@ function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF,
 		nx, ny = n[1], n[2]
 		# init[n...] == 0 && continue # dont visit a prev head
 		canvisit(bfs, n) || continue
-		if visited(init, n)
+		if visited(bfs, n)
+			is_destroyed(init, n) && continue
 			k = cluster(init, n)
-			should_merge(uf, k, v) || continue
-			merge_cls(uf, k, v)
+			if should_merge(uf, k, v) 
+				merge_cls(uf, k, v)
+			elseif should_unvisit(init, bfs, uf, ss, n)
+				destroy(init, n)
+			end
 		else 
 			maybe_eat(bfs, ss, n) 
 			cluster!(uf, init, n, parent(uf, v))
 			push!(ss, n)
+			markgen(bfs, n)
 		end
 	end		
 end 
