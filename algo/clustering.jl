@@ -368,10 +368,12 @@ function should_unvisit(init, bfs, uf, ss, x)
 	r = root(uf, v)
 	r == ss.snake.id && return false
 	rs = rootsnake(bfs, r)
-	return compute_len(rs) <= compute_len(ss)
+	# println("should_unvisit $x $(ss.snake.id) $r")
+	return compute_len(rs) == compute_len(ss)
 end
 
 function destroy(init::RBuf, x::Tuple{Int,Int})
+	# println("destroy $x")
 	init[x...] = -1
 end
 

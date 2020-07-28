@@ -516,7 +516,7 @@ function colorarray(g, x = (-1, -1), colors=SNAKE_COLORS)
 	bc = Crayon(background=:black)
 	df = Crayon(background=:default, foreground=:default)
 	io = IOBuffer()
-	num_rep = (x) -> lpad(x < 1 ? "" : "$(x) ", 3)
+	num_rep = (x) -> lpad(x < 1 ? "$x" : "$(x) ", 3)
 	color(x) = colors[(x - 1) % length(colors) + 1]
 	foreach( i -> begin
 		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : num_rep(g[i, y[1]])),
