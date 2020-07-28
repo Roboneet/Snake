@@ -96,12 +96,14 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 		s = S[j]
 		switch!(exp(s))
 		snake_tail = i - s.tail_lag
-		# @show s.tail_lag
 		trail = s.snake.trail
+
+		# @show s.tail_lag, snake_tail, length(trail)
 		if (length(s.snake) >= snake_tail && 
 			!s.has_eaten &&
 			(snake_tail != 1 || trail[snake_tail] != trail[snake_tail + 1]))
 			t = trail[snake_tail]
+			# @show t
 			c = cls[t...]
 			# @show t, c, c.snakes 
 			isempty(c.snakes) && continue

@@ -61,10 +61,10 @@ function select(st, snakeid, moves, rcs; verbose=false)
 		# values[moves[i]] = min(v, me.snake.health + me.power_boost)
 		# values[moves[i]] = v
 	end 
-	# return betterthanavg(values)[2]
-	mx = maximum(x -> x[2], pairs(values))
-	return map(y -> y[1], 
-				filter(x -> x[2] >= mx, collect(pairs(values))))
+	return betterthanavg(values)[2]
+	# mx = maximum(x -> x[2], pairs(values))
+	# return map(y -> y[1], 
+				# filter(x -> x[2] >= mx, collect(pairs(values))))
 end
 
 

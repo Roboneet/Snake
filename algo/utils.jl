@@ -192,8 +192,8 @@ flow(fs...) = flow(fs)
 function flow(fs)
 	function br(f, g)
 		return x -> begin
-			length(x) == 1 && return x
-		    l = f(x)
+			length(x) <= 1 && return x
+		    l = f(x) 
 		    isempty(l) && return x
 		    length(l) == 1 && return l
 		    g(l)

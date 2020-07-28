@@ -96,16 +96,19 @@ function pipe(algo::Type{TreeSearch{R,V,T}}, s::SType, i::Int) where {R,V,T}
 	end
 end
 
-function closestreachablefood(s::SType, i::Int, f=listclusters)
+function closestreachablefood(s::SType, i::Int, f=listclusters) 
 	food = collect(s.food)
 	isempty(food) && return identity
-	c, d, l = f(s, i)
-	rf = []
-	for i=1:length(food)
-		fo = food[i]
-		if c[fo[1], fo[2]] in l
-			push!(rf, fo)
+
+	return y -> begin
+		c, d, l = f(s, i)
+		rf = []
+		for i=1:length(food)
+			fo = food[i]
+			if c[fo[1], fo[2]] in l
+				push!(rf, fo)
+			end
 		end
+		astar(cells(s), head(s.snakes[i]), rf, y)
 	end
-	return y -> astar(cells(s), head(s.snakes[i]), rf, y)
 end
