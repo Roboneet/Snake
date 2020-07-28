@@ -51,7 +51,7 @@ function winstats(algos, env; N::Int=100, progress=false)
 	wins = zeros(Int, length(algos))
 	for i=1:N
 		if progress
-			@info "Life $i "
+			println("winstats: $(wins)")
 		end
 		play(algos, env)
 		sn = snakes(env.game)

@@ -135,7 +135,7 @@ function markheads(rcstate::RCState, ss::Array{SnakeState,1})
 end
 
 function markhead(rcstate::RCState, ss::SnakeState, x::Tuple{Int,Int})
-	if rcstate.board[x...] == -1
+	if isalive(rcstate.bfs, ss) && rcstate.board[x...] == -1
 		rcstate.board[x...] = 0
 		push!(ss, x) 
 	end

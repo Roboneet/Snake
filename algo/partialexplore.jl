@@ -56,10 +56,13 @@ function select(st, snakeid, moves, rcs; verbose=false)
 		v = spacevalue(st, snakeid, mat, clens, root[snakeid])
 		me = filter(x -> id(x.snake) == snakeid, rcs[i].bfs.snake_states)[1]
 		l = me.tail_lag + 1
-		values[moves[i]] = v*l 
-		# values[moves[i]] = v
+		# values[moves[i]] = v*l 
+		values[moves[i]] = min(v, me.snake.health + me.power_boost)
 	end 
-	return betterthanavg(values)[2]
+	# return betterthanavg(values)[2]
+	mx = maximum(x -> x[2], pairs(values))
+	return map(y -> y[1], 
+				filter(x -> x[2] >= mx, collect(pairs(values))))
 end
 
 
