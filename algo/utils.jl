@@ -490,7 +490,7 @@ end
 
 function reachableclusters(s::SType, i=1; kwargs...)
 	cls = cells(s)
-	return reachableclusters(cls, s.snakes; pref=i, kwargs...)
+	return reachableclusters(cls, s.snakes; hero=i, kwargs...)
 end
 
 function colorarray(g::Array{Int,2}, d::Dict{Int,Int},

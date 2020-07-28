@@ -48,7 +48,7 @@ mutable struct SnakeBFS
 	cells::Array{Cell,2}
 	snake_states::Array{SnakeState,1}
 	generation::Int
-	sort_preference::Int
+	hero::Int
 	gboard::RBuf # keeps track of the generation at which a cell is visited
 end
 
@@ -118,12 +118,12 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 end
 
 function create(cls::Array{Cell,2}, S::Array{Snake,1}; 
-				moves=map(x->nothing,S), pref=1, kwargs...)
+				moves=map(x->nothing,S), hero=1, kwargs...)
 	# @show moves
 	return RCState(matrix(cls; default=-1), 
 				   SnakeBFS(cls, 
 							map(x -> SnakeState(S[x], moves[x]), 1:length(S)),
-							0, pref, matrix(cls; default=-1)),
+							0, hero, matrix(cls; default=-1)),
 				   SnakeUF(ClusterInfo[])
 	)
 end
@@ -294,7 +294,7 @@ function sortValue(ss::SnakeState, i::Int)
 end 
 
 function determine_snake_order!(bfs::SnakeBFS)
-	sp = bfs.sort_preference
+	sp = bfs.hero
 	sort!(bfs.snake_states,
 		  by = ss -> sortValue(ss, sp),
 		  rev = true,
@@ -350,8 +350,7 @@ end
 
 function maybe_eat(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int})
 	c = bfs.cells
-	ss.has_eaten = c[x...].food 
-	# @show ss.has_eaten
+	ss.has_eaten = ss.has_eaten || c[x...].food 
 	c[x...].food = false
 end
 
