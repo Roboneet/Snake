@@ -1,8 +1,8 @@
 abstract type AbstractAlgo end
 
-include("../env/Snake.jl")
+include("../env/Snake.jl") 
+include("../utils/frames.jl")
 
-include("frames.jl")
 include("clustering.jl")
 include("partialexplore.jl")
 include("utils.jl")

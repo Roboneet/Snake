@@ -57,24 +57,13 @@ fullhealth(snake::Snake) = (health(snake) == SNAKE_MAX_HEALTH)
 
 function willtailmove(cell::Cell, cells, snakeslist)
 	isempty(snakes(cell)) && return true # this case doesn't happen though
-	# is there an next state where it won't (very pessimistic)
 	snake = snakeslist[collect(snakes(cell))[1]]
-	# H = head(snakeslist[snake])
-	# nf = nearfood(cells[H...], cells)
-	# return !nf
-	# return length(snake) >= 3 && !fullhealth(snake) # has eaten ?
 	return snake.trail[2] != snake.trail[1]
 end
 
 
 freecell(cell::Cell, cells, snakes) = isempty(cell.snakes) ||
 		 (cell.istail &&  willtailmove(cell, cells, snakes))
-
-# function issafe(cell, snake, cells, snakes) # is the cell safe to take?
-# 	nearbigsnake(cell, snake, cells, snakes) && return false
-
-# 	return freecell(cell, cells, snakes)
-# end
 
 function connectionset(r::Int, c::Int)
 	connection = Array{Union{Nothing,Tuple{Int,Int}},2}(undef, (r, c))
@@ -187,20 +176,34 @@ function shortest_distance(cls::AbstractArray{Cell,2},
 end
 
 # higher order function to run a list of functions until the end or until one of it provides an empty output or there is only one element left
-flow(f::Function) = flow((f,))
-flow(fs...) = flow(fs)
-function flow(fs)
-	function br(f, g)
-		return x -> begin
-			length(x) <= 1 && return x
-		    l = f(x) 
-		    isempty(l) && return x
-		    length(l) == 1 && return l
-		    g(l)
-	    end
-	end
-	foldr(br, fs, init=identity)
+flow(f) = x -> begin
+	o = f(x)
+	isempty(o) && return x
+	return o
 end
+
+flow(f, g...) = x -> begin
+	o = f(x)
+	isempty(o) && return x
+	length(o) == 1 && return o
+	return flow(g...)(o)
+end
+
+# flow(f::Function) = flow((f,))
+# flow(fs...) = flow(fs)
+# function flow(fs)
+# 	function br(f, g)
+# 		return x -> begin
+# 			length(x) <= 1 && return x
+# 		    l = f(x) 
+# 		    isempty(l) && return x
+# 		    length(l) == 1 && return l
+# 		    g(l)
+# 	    end
+# 	end
+# 	foldr(br, fs, init=identity)
+# end
+
 choose(f) = y -> filter(f, y)
 through(p, f) = y -> (p ? f(y) : y)
 

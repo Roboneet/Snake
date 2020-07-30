@@ -131,11 +131,11 @@ function cls(out::IO, l::Int)
 end
 
 viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, (args...) -> "")
-viewgame(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
-	viewgame(terminal, fr, x -> statevalue(V, x, i))
+# viewgame(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
+# 	viewgame(terminal, fr, x -> statevalue(V, x, i))
 viewtree(fr::Frame, i::Int=1) = viewtree(terminal, fr, x -> "")
-viewtree(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
-	viewtree(terminal, fr, x -> statevalue(V, x, i))
+# viewtree(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
+# 	viewtree(terminal, fr, x -> statevalue(V, x, i))
 function viewtree(term::TTYTerminal, fr::Frame, f)
 	branches(fr) == 0 && error("single node")
 

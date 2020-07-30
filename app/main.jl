@@ -1,7 +1,3 @@
-using Pkg
-println("pwd = $(pwd())")
-println("@__DIR__ = $(@__DIR__)")
-
 using Mux
 using Mux: URI
 using JSON

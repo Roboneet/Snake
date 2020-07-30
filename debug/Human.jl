@@ -1,6 +1,6 @@
 using REPL.TerminalMenus
 
-abstract type AbstractExternal <: AbstractAlgo end
+abstract type AbstractExternal end
 
 input_src(::Type{T}) where T <: AbstractExternal =
     error("not implemented for type $T")

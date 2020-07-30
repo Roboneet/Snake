@@ -1,6 +1,9 @@
-include("../algo/algo.jl")
+include("../env/Snake.jl")
+include("../utils/frames.jl")
+
 include("utils.jl")
 include("Human.jl")
+
 using Statistics
 using REPL
 using REPL.Terminals
@@ -9,11 +12,11 @@ using UnicodePlots
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
 
-function play(algo::Type{T}, env=DEFAULT_ENV) where T <: AbstractAlgo
+function play(algo, env=DEFAULT_ENV)
 	play([algo for i=1:Nsnakes(env)], env)
 end
 
-function lifestats(algo::Type{T}, env=DEFAULT_ENV; progress=false) where T <: AbstractAlgo
+function lifestats(algo, env=DEFAULT_ENV; progress=false)
 	m = 0
 	N = 100
 	death_reasons = Dict()
@@ -127,14 +130,6 @@ function play(algos::Array, env::SnakeEnv; verbose=false)
 	    end
 		step!(env, moves)
 		s′ = state(env)
-
-		# d = []
-		# if length(filter(alive, s.snakes)) != length(filter(alive, s′.snakes))
-		# 	ids = id.(filter(alive, s′.snakes))
-		# 	d = id.(filter(x -> !(id(x) in ids), filter(alive, s.snakes)))
-		# end
-
-		# fr = child(fr, moves, Frame(s′, d, fr))
 		fr = child(fr, moves, Frame(s′, fr))
 	end
 	end_(sc, fr)
@@ -148,20 +143,20 @@ mapframes(f, fr::Nothing) = []
 
 graph(f, fr; kwargs...) = lineplot(mapframes(f, fr); kwargs...)
 graph!(f, fr, plt; kwargs...) = lineplot!(plt, mapframes(f, fr); kwargs...)
-graphvalue(fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph(x -> statevalue(v, x, i), fr; kwargs...) 
-graphvalue!(plt, fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph!(x -> statevalue(v, x, i), fr, plt; kwargs...)
+# graphvalue(fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph(x -> statevalue(v, x, i), fr; kwargs...) 
+# graphvalue!(plt, fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph!(x -> statevalue(v, x, i), fr, plt; kwargs...)
 
-function graphgame(fr, v::Type{<:AbstractValue}; kwargs...)
-	N = length(fr.state.snakes)
-	ntuple(x -> graphvalue(fr, v, x; kwargs...), N)
-end
+# function graphgame(fr, v::Type{<:AbstractValue}; kwargs...)
+# 	N = length(fr.state.snakes)
+# 	ntuple(x -> graphvalue(fr, v, x; kwargs...), N)
+# end
 
-function graphgame!(fr, v::Type{<:AbstractValue}; kwargs...)
-	N = length(fr.state.snakes)
-	plt = graphvalue(fr, v, 1; name=1, kwargs...)
-	for i=2:N
-		graphvalue!(plt, fr, v, i; name=i)
-	end
-	plt
-end
+# function graphgame!(fr, v::Type{<:AbstractValue}; kwargs...)
+# 	N = length(fr.state.snakes)
+# 	plt = graphvalue(fr, v, 1; name=1, kwargs...)
+# 	for i=2:N
+# 		graphvalue!(plt, fr, v, i; name=i)
+# 	end
+# 	plt
+# end
 
