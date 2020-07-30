@@ -11,6 +11,11 @@ algoDict["rainbow"] = Earthworm{3,Grenade,TreeSearch{NotBad,Punk,SeqLocalSearch{
 algoDict["antimatter"] = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
 algoDict["diamond"] = PartialExplore
 
+popo(i) = TreeSearch{NotBad,Punk,SeqLocalSearch{i}}
+const t3 = popo(3)
+const t4 = popo(4)
+
+
 function whichalgo(req)
     if haskey(req, :params)
         name = req[:params][:s]
@@ -26,25 +31,26 @@ function test(f)
    return (req) -> begin
       name = req[:params][:s]
       if !haskey(algoDict, name)
+		  @show name
             algoDict[name] = eval(Meta.parse(name))
-            @show algoDict
       end
       f(req)
    end
 end
 
 include("views.jl")
+function pages(start, fs...)
+	PAGE = (x) -> page(x...)
+	prepend = (x) -> (y -> "$x$y")
+	PAGE.(zip(prepend(start).(("/", "/start", "/move", "/ping", "/end")),
+			 fs))
+end
 
 @app sankeserver = (
    logger,
    IS_PROD ? Mux.prod_defaults : Mux.defaults,
    page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
-   page("/:s/", snake_info),
-   page("/:s/start", start),
-   page("/:s/move", move),
-   page("/:s/ping", respond("ok")),
-   page("/:s/end", foo),
-   page("/test/:s/move", test(move)),
-   page("/test/:s/start", test(start)),
+   pages("/:s", snake_info, start, move, respond("ok"), foo)...,
+   pages("/test/:s", snake_info, test(start), test(move), respond("ok"), foo)...,
    page("/test/store/", test_store),
    Mux.notfound())
