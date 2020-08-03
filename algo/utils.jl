@@ -14,27 +14,12 @@ eng(x::AbstractArray) = eng.(x)
 sign(x) = S[x]
 sign(x::AbstractArray) = sign.(x)
 
-# prefer moves that could eliminate competition
-# avoid ones that could eliminate the snake
-# function snake_eye(state, moves, i)
-# 	snakes = state[:snakes]
-# 	snake = snakes[i]
-# 	v = map(x -> sum(map(y -> begin
-# 			!y.alive && return 0
-# 			y == snake && return 0
-# 			sum(abs.(head(y) .- x)) != 1 && return 0
-# 			length(y) >= length(snake) && return -1
-# 			return 1
-# 		end, snakes)), moves)
-# 	val, m = findmax(v)
-# 	return moves[m]
-# end
-
 function nearsnake(st::SType, i::Int, cmp)
 	cls = cells(st)
 	c = cls[head(s.snakes[i])...]
 	nearsnake(c, s.snakes[i], cls, s.snakes, cmp)
 end
+
 function nearsnake(cell::Cell, snake::Snake, cells, snakeslist, cmp)
 	n = filter(x -> x.ishead, neighbours(cell, cells))
 

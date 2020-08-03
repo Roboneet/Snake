@@ -8,7 +8,7 @@ pipe(::Type{PartialExplore}, s, i) = flow(
 function partialexplore(st::SType, i::Int; kwargs...)
 	return dirs -> begin
 		# @show dirs 
-		rcs = partialexplore(st, i, dirs; kwargs...)
+		rcs = considermoves(st, i, dirs; kwargs...)
 		return select(st, i,dirs, rcs; kwargs...)
 	end
 end
@@ -29,8 +29,8 @@ function copyss(ss::SnakeState)
 
 end
 
-function partialexplore(st::SType, snakeid::Int, moves::Array{Tuple{Int,Int},1}; kwargs...)
-	rcs = []
+function considermoves(st::SType, snakeid::Int, moves::Array{Tuple{Int,Int},1}; kwargs...)
+	rcs = RCState[]
 	p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
 	for i=1:length(moves)
 		m = moves[i]

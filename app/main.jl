@@ -10,30 +10,12 @@ if DEBUG && !isdefined(Main, :w)
     w = Blink.Window()
 end
 
-REDIS_HOST="127.0.0.1"
-REDIS_PORT=6379
-REDIS_PASSWORD=""
-REDIS_DB=0
 USE_REDIS=false
 IS_PROD=haskey(ENV, "ON_HEROKU")
 
-
-if USE_REDIS && haskey(ENV, "REDIS_URL")
-    url = ENV["REDIS_URL"]
-    # redis://[:password@]host:port[/db]
-    c = match(r"^redis://(?:(?:.*):(.*)@)?(.*):(\d*)(?:/(\d*))?", url)
-    REDIS_HOST = c[2]
-    REDIS_PORT = parse(Int, c[3])
-    if c[1] !== nothing
-        REDIS_PASSWORD = c[1]
-    end
-
-    if c[4] !== nothing
-        REDIS_DB = c[4]
-    end
-end
-
 include("../algo/algo.jl")
+using .SnakePit: state
+
 include("firstcall.jl")
 include("controller.jl")
 

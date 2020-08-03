@@ -1,5 +1,4 @@
-include("../env/Snake.jl")
-include("../utils/frames.jl")
+include("../algo/algo.jl")
 
 include("utils.jl")
 include("Human.jl")
@@ -7,7 +6,10 @@ include("Human.jl")
 using Statistics
 using REPL
 using REPL.Terminals
-using UnicodePlots
+# using UnicodePlots
+
+using .SnakePit: Nsnakes, state
+
 
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
@@ -116,7 +118,7 @@ function play(algos::Array, env::SnakeEnv; verbose=false)
 	fr = Frame(state(env), nothing)
 	top = fr
 
-	times = [Float32[] for i=1:N]
+	# times = [Float32[] for i=1:N]
 	while !done(env)
 		step(sc, fr)
 		s = state(env)
@@ -124,8 +126,9 @@ function play(algos::Array, env::SnakeEnv; verbose=false)
 		moves = []
 		for x=1:N
 			a = algos[x]
-			t = @elapsed v = findmove(a, s, x)
-			push!(times[x], t)
+			# t = @elapsed 
+			v = findmove(a, s, x)
+			# push!(times[x], t)
 			push!(moves, v)
 	    end
 		step!(env, moves)
@@ -134,15 +137,16 @@ function play(algos::Array, env::SnakeEnv; verbose=false)
 	end
 	end_(sc, fr)
 
-	return top, times
+	return top
+	# , times
 end
 
 perframe(f, fr) = f(fr)
 mapframes(f, fr) = [perframe(f, fr), mapframes(f, next(fr))...]
 mapframes(f, fr::Nothing) = []
 
-graph(f, fr; kwargs...) = lineplot(mapframes(f, fr); kwargs...)
-graph!(f, fr, plt; kwargs...) = lineplot!(plt, mapframes(f, fr); kwargs...)
+# graph(f, fr; kwargs...) = lineplot(mapframes(f, fr); kwargs...)
+# graph!(f, fr, plt; kwargs...) = lineplot!(plt, mapframes(f, fr); kwargs...)
 # graphvalue(fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph(x -> statevalue(v, x, i), fr; kwargs...) 
 # graphvalue!(plt, fr, v::Type{<:AbstractValue}, i=1; kwargs...) = graph!(x -> statevalue(v, x, i), fr, plt; kwargs...)
 

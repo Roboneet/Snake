@@ -38,6 +38,6 @@ end
 
 end
 
-const store = Persistence.Store(REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB)
+# const store = Persistence.Store(REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB)
 
-keep(args...) = Persistence.__keep__(store, args...)
+# keep(args...) = Persistence.__keep__(store, args...)

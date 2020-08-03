@@ -11,11 +11,6 @@ algoDict["rainbow"] = Earthworm{3,Grenade,TreeSearch{NotBad,Punk,SeqLocalSearch{
 algoDict["antimatter"] = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
 algoDict["diamond"] = PartialExplore
 
-popo(i) = TreeSearch{NotBad,Punk,SeqLocalSearch{i}}
-const t3 = popo(3)
-const t4 = popo(4)
-
-
 function whichalgo(req)
     if haskey(req, :params)
         name = req[:params][:s]
@@ -30,11 +25,12 @@ end
 function test(f)
    return (req) -> begin
       name = req[:params][:s]
-      if !haskey(algoDict, name)
+	  if !haskey(algoDict, name)
 		  @show name
-            algoDict[name] = eval(Meta.parse(name))
-      end
-      f(req)
+		  # simple names (types without parameters) will work
+		  algoDict[name] = eval(Meta.parse(name))
+	  end
+	  f(req)
    end
 end
 

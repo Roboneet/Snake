@@ -21,7 +21,23 @@ struct RCState
 end
 
 unwrap(rc::RCState) = (rc.board, rc.bfs, rc.uf,)
-Base.show(io::IO, rc::RCState) = println(io, colorarray(rc.board))
+
+function gradient(S, E, n)
+	d(x, y, i) = floor(Int, (y[i] - x[i])/n)
+	D = (d(S, E, 1), d(S, E, 2), d(S, E, 3))
+	map(x -> S .+ (x - 1).*D, 1:n) 
+end
+
+function arraygradient(arr, S, E)
+	colorarray(arr, (-1, -1), 
+	gradient(S, E, maximum(arr))
+	)
+end
+
+function Base.show(io::IO, rc::RCState) 
+	println(io, arraygradient(rc.board, (0, 242, 96), (5, 117, 230)))
+	# println(io, arraygradient(rc.bfs.gboard, (201, 75, 75), (75, 19, 79))) 
+end
 
 const RBuf = Array{Int64,2} # this probably means Reachable Buffer
 
@@ -208,10 +224,8 @@ function bfs_neighbours(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}; isspaw
 	return neighbours(x, size(bfs.cells)...)
 end
 
-cells(bfs::SnakeBFS) = bfs.cells
-
 function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
-	cell = cells(bfs)[x...]
+	cell = bfs.cells[x...]
 	return !hassnake(cell)
 end
 

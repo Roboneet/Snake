@@ -3,6 +3,8 @@ using REPL
 using REPL.Terminals: TTYTerminal
 using REPL.TerminalMenus: enableRawMode, disableRawMode, readKey
 
+using .SnakePit: copystate
+
 mutable struct FrameStats
 	nodes
 end
