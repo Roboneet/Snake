@@ -240,7 +240,7 @@ FKG_COLOR = :white
 FOOD_COLOR = (109, 22, 130)
 
 function showcell(io, cell)
-	if cell.value != nothing
+	if cell.value !== nothing
 		cellvalue(io, cell)
 	elseif unoccupied(cell)
 		cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)

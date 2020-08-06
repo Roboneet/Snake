@@ -25,7 +25,7 @@ julia> env
 See also: [`SnakeEnv`](@ref) 
 
 """ 
-module SnakePit
+# module SnakePit
 
 export Game, SnakeEnv, Snake, Config, SType, Cell, Board
 export neighbours, reset!, step!, done
@@ -277,7 +277,7 @@ end
 
 function move(b::Board, s::Snake)
 	d = s.direction
-	if d == nothing
+	if d === nothing
 		s.direction = d = UP_DIR
 	end
 	cells = b.cells
@@ -309,4 +309,4 @@ function kill!(board::Board, s::Snake, reason)
 	s.death_reason = reason
 end
 
-end
+# end

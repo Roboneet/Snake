@@ -217,7 +217,7 @@ current(ss::SnakeState) = current(exp(ss))
 
 function bfs_neighbours(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}; isspawn::Bool = false)
 	# @show isspawn, ss.move
-	if isspawn && ss.move != nothing
+	if isspawn && ss.move !== nothing
 		m = ss.move .+ x
 		return [m]
 	end
@@ -260,6 +260,7 @@ function compile!(uf::SnakeUF, roots::Dict{Int, Array{Int,1}})
 end
 
 cluster(uf::SnakeUF, k::Int) = uf.clusters[k]
+import Base: length
 Base.length(uf::SnakeUF, k::Int) = cluster(uf, k).length
 
 function Base.parent(uf::SnakeUF, c::Int)

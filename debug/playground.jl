@@ -6,10 +6,8 @@ include("Human.jl")
 using Statistics
 using REPL
 using REPL.Terminals
-# using UnicodePlots
-
-using .SnakePit: Nsnakes, state
-
+# using UnicodePlots 
+# using .SnakePit: Nsnakes, state
 
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
@@ -24,7 +22,7 @@ function lifestats(algo, env=DEFAULT_ENV; progress=false)
 	death_reasons = Dict()
 	lens = []
 	lifelens = []
-	Threads.@threads for i=1:N
+	for i=1:N
 		if progress
 			@info "Life $i"
 		end
@@ -34,8 +32,7 @@ function lifestats(algo, env=DEFAULT_ENV; progress=false)
 			dr = x.death_reason
 			if !haskey(death_reasons, dr)
 				death_reasons[dr] = 0
-			end
-
+			end 
 			death_reasons[dr] += 1
 			push!(lens, length(x))
 		end
@@ -51,15 +48,23 @@ function lifestats(algo, env=DEFAULT_ENV; progress=false)
 	return ml, death_reasons
 end
 
+function match(f, algos, env, N)
+	for i=1:N
+		f(play(algos, env))
+		reset!(env)
+	end
+end
+
 winstats(algos; kwargs...) = winstats(algos, SnakeEnv(DEFAULT_BOARD_SIZE, length(algos)); kwargs...)
+
 function winstats(algos, env; N::Int=100, progress=false)
 	wins = zeros(Int, length(algos))
-	for i=1:N
+	match(algos, env, N) do fr
 		if progress
 			println("winstats: $(wins)")
 		end
-		play(algos, env)
-		sn = snakes(env.game)
+		kr = endof(fr)
+		sn = kr.state.snakes 
 		k = sn[alive.(sn)]
 		if !isempty(k)
 			x = id(k[1])
@@ -68,7 +73,6 @@ function winstats(algos, env; N::Int=100, progress=false)
 				@show x
 			end
 		end
-		reset!(env)
 	end
 	return wins
 end
@@ -109,7 +113,6 @@ function play(algos::Array, size::Tuple{Int,Int}; kwargs...)
 end
 
 function play(algos::Array, env::SnakeEnv; verbose=false)
-	# reset!(env)
 	N = Nsnakes(env)
 
 	sc = verbose ? Screen() : nothing
@@ -118,19 +121,10 @@ function play(algos::Array, env::SnakeEnv; verbose=false)
 	fr = Frame(state(env), nothing)
 	top = fr
 
-	# times = [Float32[] for i=1:N]
 	while !done(env)
 		step(sc, fr)
 		s = state(env)
-		# moves = ntuple(x -> findmove(algos[x], s, x), N)
-		moves = []
-		for x=1:N
-			a = algos[x]
-			# t = @elapsed 
-			v = findmove(a, s, x)
-			# push!(times[x], t)
-			push!(moves, v)
-	    end
+		moves = ntuple(x -> findmove(algos[x], s, x), N)
 		step!(env, moves)
 		s′ = state(env)
 		fr = child(fr, moves, Frame(s′, fr))
@@ -138,7 +132,6 @@ function play(algos::Array, env::SnakeEnv; verbose=false)
 	end_(sc, fr)
 
 	return top
-	# , times
 end
 
 perframe(f, fr) = f(fr)

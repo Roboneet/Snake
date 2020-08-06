@@ -14,7 +14,7 @@ USE_REDIS=false
 IS_PROD=haskey(ENV, "ON_HEROKU")
 
 include("../algo/algo.jl")
-using .SnakePit: state, showcells
+# using .SnakePit: state, showcells
 
 include("firstcall.jl")
 include("controller.jl")

@@ -17,18 +17,6 @@ function copyrc(rc::RCState)
 	return RCState(copy(rc.board), copybfs(rc.bfs), deepcopy(rc.uf))
 end
 
-function copybfs(bfs::SnakeBFS)
-	return SnakeBFS(deepcopy(bfs.cells),
-				   copyss.(bfs.snake_states),
-				   bfs.generation)
-end
-
-function copyss(ss::SnakeState)
-	return SnakeState(ss.snake, deepcopy(ss.exploration_set), ss.has_eaten,
-					  ss.tail_lag, ss.power_boost)
-
-end
-
 function considermoves(st::SType, snakeid::Int, moves::Array{Tuple{Int,Int},1}; kwargs...)
 	rcs = RCState[]
 	p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]

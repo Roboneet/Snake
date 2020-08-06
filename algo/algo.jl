@@ -1,9 +1,9 @@
 include("../env/Snake.jl") 
-using .SnakePit
+# using .SnakePit
 
-using .SnakePit: alive, head, cells, height, width, in_bounds, snakes, id, health
-using .SnakePit: SNAKE_COLORS, hassnake, mode, SINGLE_PLAYER_MODE, MULTI_PLAYER_MODE
-using .SnakePit: indices, gamestate
+# using .SnakePit: alive, head, cells, height, width, in_bounds, snakes, id, health
+# using .SnakePit: SNAKE_COLORS, hassnake, mode, SINGLE_PLAYER_MODE, MULTI_PLAYER_MODE
+# using .SnakePit: indices, gamestate
 
 abstract type AbstractAlgo end
 

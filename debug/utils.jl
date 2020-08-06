@@ -48,7 +48,7 @@ end
 function endof(fr::Frame)
 	e = fr
 	roll(fr) do x
-		k = next(x) == nothing
+		k = next(x) === nothing
 		if k
 			e = x
 		end
@@ -108,7 +108,7 @@ end
 function playframes(term::TTYTerminal,
 	fr::Frame, l::Int, interrupt::Channel{Bool}, framech::Channel{Frame}, f)
 	k = fr
-	until(interrupt, () -> (next(k) != nothing)) do
+	until(interrupt, () -> (next(k) !== nothing)) do
 		cls(term.out_stream, l)
 		viewframe(term.out_stream, k, f)
 		sleep(0.06)
@@ -158,7 +158,7 @@ function viewtree(term::TTYTerminal, fr::Frame, f)
 			if c == 1001 # right arrow
 				# println(term.out_stream, "YAY")
 				# t = next(k)
-				# if t != nothing
+				# if t !== nothing
 				# 	k = t
 				# end
 				if is[t] < nb
@@ -233,7 +233,7 @@ function viewgame(term::TTYTerminal, fr::Frame, f)
 			if c == 1001 # right arrow
 				# println(term.out_stream, "YAY")
 				t = next(k)
-				if t != nothing
+				if t !== nothing
 					k = t
 				end
 
@@ -244,7 +244,7 @@ function viewgame(term::TTYTerminal, fr::Frame, f)
 				# do nothing
 			elseif c == 1000 # left arrow key
 				t = prev(k)
-				if t != nothing
+				if t !== nothing
 					k = t
 				end
 			elseif c == 114 # r
@@ -281,7 +281,7 @@ function treeview(fr::Frame, padding=0; i=1, verbose=false)
 	ch = pairs(fr.children)
 	if isempty(ch)
 		print(" "^padding)
-		println("statevalue($(i)): $(statevalue(fr, i))")
+		# println("statevalue($(i)): $(statevalue(fr, i))")
 		if verbose
 			display(fr)
 		end

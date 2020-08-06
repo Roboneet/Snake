@@ -62,7 +62,7 @@ function extract_snake_trail(f, height, width)
 end
 
 function extract_snake_direction(trail)
-	(trail[end] == nothing || trail[end - 1] == nothing) &&
+	(trail[end] === nothing || trail[end - 1] === nothing) &&
 		return trail[end - 1] .- trail[end - 2]
 	return trail[end] .- trail[end - 1]
 end

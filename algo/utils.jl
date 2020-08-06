@@ -74,7 +74,7 @@ function path(cls, I, J; kwargs...)
 	while !haspath && !isempty(explore1) && !isempty(explore2)
 		g = dequeue!(explore1)
 		N1 = path(cls, g, J, connection1, explore1; kwargs...)
-		M1 = map(x -> connection2[x...] != nothing, N1)
+		M1 = map(x -> connection2[x...] !== nothing, N1)
 
 		# the first pivot has to be in the shortest path
 		# Otherwise, there would've been another pivot which we would've reached earlier
@@ -87,7 +87,7 @@ function path(cls, I, J; kwargs...)
 
 		h = dequeue!(explore2)
 		N2 = path(cls, h, I, connection2, explore2; kwargs...)
-		M2 = map(x -> connection1[x...] != nothing, N2)
+		M2 = map(x -> connection1[x...] !== nothing, N2)
 		if any(M2)
 			haspath = true
 			pivot = N2[M2][1]
@@ -95,12 +95,12 @@ function path(cls, I, J; kwargs...)
 			break
 		end
 
-		if connection1[J...] != nothing
+		if connection1[J...] !== nothing
 			haspath = true
 			p = collectpath(connection1, connection2, I, J, J)
 			break
 		end
-		if connection2[I...] != nothing
+		if connection2[I...] !== nothing
 			haspath = true
 			p = collectpath(connection1, connection2, I, J, I)
 			break
@@ -140,7 +140,7 @@ function path(cls, I, J, connection, explore=[]; head=false)
 	N = filter(t -> begin
 	   @inbounds c = connection[t[1], t[2]]
 	   @inbounds k = cls[t[1], t[2]]
-	   c != nothing && return false
+	   c !== nothing && return false
 	   length(snakes(k)) == 0 && return true
 	   # @show head, t, J
 	   head && (t == J)
@@ -214,7 +214,7 @@ function directionpipe(s, i, t)
 	r, c = height(s), width(s)
 
 	cls = cells(r, c, s.snakes, food)
-	directionpipe(s, i, cls, I, t != nothing)
+	directionpipe(s, i, cls, I, t !== nothing)
 end
 
 function canmove(s::SType, i::Int, I, cls)
@@ -247,7 +247,7 @@ function astar(s::SType, i::Int, t, dir; kwargs...)
 
 	I = head(snake)
 	cls = cells(s)
-	food = t != nothing
+	food = t !== nothing
 	return  food ? astar(cls, I, [t], dir; kwargs...) : astar(cls, I, [tail(snake)], dir; kwargs...)
 end
 
@@ -365,7 +365,7 @@ function assign(st)
 	targets = Any[nothing for i=1:N]
 	foreach(x -> begin
 		snake = snakes[x]
-	 	if snake_match[x] != nothing
+	 	if snake_match[x] !== nothing
 	 		targets[snake] = food[snake_match[x]]
 	 	end
 	end, 1:length(snakes))
@@ -427,7 +427,7 @@ function distancematrix(c, src::T, m, maxsteps=SNAKE_MAX_HEALTH, heads=nothing) 
 			end
 		end
 	end
-	if heads != nothing
+	if heads !== nothing
 		for h in heads
 			N = neighbours(h, r, ci)
 			M = filter(x -> x != -1,
@@ -485,7 +485,7 @@ function colorarray(g::Array{Int,2}, d::Dict{Int,Int},
 	l::Dict{Int,Array{Int,1}}, i=nothing)
 	m = maximum(collect(keys(d)))
 	M = Any[(0, 0, 0) for i=1:m]
-	if i == nothing
+	if i === nothing
 		for (k, v) in l
 			for c in v
 				M[c] = SNAKE_COLORS[k]

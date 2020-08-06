@@ -45,7 +45,7 @@ function __pipe__(algo::Type{T}, s::SType, i::Int; t=s.food, tailchase=true) whe
 			t = [nothing]
 		end
 
-		hasfood = !(length(t) == 1 && t[1] == nothing)
+		hasfood = !(length(t) == 1 && t[1] === nothing)
 		dir = (flow(through(hasfood || !tailchase, biggercluster(I, clusters, cdict)),
 			choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s.snakes))) # may return 0 elements
 		)(dir)

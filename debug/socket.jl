@@ -28,13 +28,13 @@ function (w::WSParser)(d::Dict)
     c = w.config
     height, width = c.height, c.width
 	
-	snakes = filter(x -> x["death"] == nothing, d["snakes"])
+	snakes = filter(x -> x["death"] === nothing, d["snakes"])
 	snakes = map(1:length(snakes)) do i
         x = snakes[i]
         trail = extract_snake_trail(x["body"], height, width)
 		trail = map(p -> (height - p[1] + 1, p[2],), trail)
         direction = extract_snake_direction(trail)
-        alive = (x["death"] == nothing)
+        alive = (x["death"] === nothing)
         Snake(i, trail, x["health"], alive,
          direction, nothing)
     end
