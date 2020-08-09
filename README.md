@@ -23,6 +23,8 @@ julia> play();
 
 ```
 
+FYI, the algorithms that have worked best are PartialExplore and TreeSearch
+
 ### Algo vs Algo
 
 ```julia-repl
