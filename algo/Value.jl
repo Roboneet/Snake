@@ -117,6 +117,7 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 end
 function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	ne = nempty(width(st), height(st), d, mode(st), length(st.snakes[i]))
+	A = width(st)*height(st)
 	# @show ne
 
 	if ne == 0
@@ -125,7 +126,8 @@ function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 		@show d, l
 	end
 	isempty(l) && return 0
-	pempty(x) = min(floor(Int, x*100/ne), cap)
+
+	pempty(x) = min(floor(Int, x*A/ne), cap*A/100)
 
 	S = maximum(map(x -> haskey(d, x) ? pempty(d[x]) : 0, l))
 	# @show S

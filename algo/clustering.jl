@@ -104,13 +104,12 @@ end
 
 function gen(bfs::SnakeBFS)
 	bfs.generation = bfs.generation + 1
-	gen(bfs, bfs.cells, bfs.snake_states, bfs.generation)
+	gen(bfs.cells, bfs.snake_states, bfs.generation)
 end 
 
-function gen(bfs::SnakeBFS, cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
+function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 	for j=1:length(S)
 		s = S[j]
-		isalive(bfs, s) || continue
 		switch!(exp(s))
 		snake_tail = i - s.tail_lag
 		trail = s.snake.trail
@@ -124,6 +123,7 @@ function gen(bfs::SnakeBFS, cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 			c = cls[t...]
 			# @show t, c, c.snakes 
 			isempty(c.snakes) && continue
+			id(s.snake) in c.snakes || continue
 			pop!(c.snakes)
 		end
 		if s.has_eaten
@@ -225,9 +225,20 @@ function bfs_neighbours(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}; isspaw
 	return neighbours(x, size(bfs.cells)...)
 end
 
+function get_snake_state_by_id(bfs, i)
+	for x in bfs.snake_states
+		if i == id(x.snake)
+			return x
+		end
+	end
+end
+
 function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
 	cell = bfs.cells[x...]
-	return !hassnake(cell)
+	s = snakes(cell)
+	isempty(s) && return true
+	i = s[1]
+	return !isalive(bfs, get_snake_state_by_id(bfs, i))
 end
 
 function visited(bfs::SnakeBFS, n::Tuple{Int,Int})
@@ -333,6 +344,10 @@ function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 end
 
 function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; verbose=false, kwargs...)
+	if verbose
+		println(colorarray(init))
+	end
+
 	gen(bfs) # move tails
 	determine_snake_order!(bfs)
 	ordered_states = bfs.snake_states
