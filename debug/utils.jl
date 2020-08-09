@@ -1,7 +1,7 @@
 # functions to read and traverse frames
 
 link(fr) = link(fr.prev, fr)
-link(pr::Nothing, fr) = nothing
+link(::Nothing, fr) = nothing
 function link(pr, fr)
 	f = filter(x -> x[2] == fr, collect(pairs(pr.children)))
 	return f[1][1]
@@ -130,10 +130,10 @@ function cls(out::IO, l::Int)
 	print(out, "\x1b[999D\x1b[$(l)A")
 end
 
-viewgame(fr::Frame, i::Int=1) = viewgame(terminal, fr, (args...) -> "")
+viewgame(fr::Frame) = viewgame(terminal, fr, (args...) -> "")
 # viewgame(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
 # 	viewgame(terminal, fr, x -> statevalue(V, x, i))
-viewtree(fr::Frame, i::Int=1) = viewtree(terminal, fr, x -> "")
+viewtree(fr::Frame) = viewtree(terminal, fr, x -> "")
 # viewtree(fr::Frame, i::Int, ::Type{V}) where V <: AbstractValue =
 # 	viewtree(terminal, fr, x -> statevalue(V, x, i))
 function viewtree(term::TTYTerminal, fr::Frame, f)

@@ -37,15 +37,16 @@ function select(st, snakeid, moves, rcs; verbose=false)
 	values = Dict{Tuple{Int,Int},Int}()
 	for i=1:length(rcs) 
 		mat, clens, root = compile(rcs[i])
+				v = spacevalue(st, snakeid, mat, clens, root[snakeid])
+		me = filter(x -> id(x.snake) == snakeid, rcs[i].bfs.snake_states)[1]
+		l = me.tail_lag + 1
+		values[moves[i]] = v*l 
 		if verbose
 			@show moves[i]
 			println(colorarray(mat))
 			println(root)
-		end
-		v = spacevalue(st, snakeid, mat, clens, root[snakeid])
-		me = filter(x -> id(x.snake) == snakeid, rcs[i].bfs.snake_states)[1]
-		l = me.tail_lag + 1
-		values[moves[i]] = v*l 
+			@show v, l
+		end 
 		# values[moves[i]] = min(v, me.snake.health + me.power_boost)
 		# values[moves[i]] = v
 	end 

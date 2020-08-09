@@ -1,5 +1,7 @@
 include("../algo/algo.jl")
 
+using .SnakePit: SnakeEnv, Nsnakes, done, step!, state
+
 include("utils.jl")
 include("Human.jl")
 

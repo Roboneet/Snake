@@ -2,25 +2,23 @@ using Mux
 using Mux: URI
 using JSON
 using HTTP
+using Sockets
 # using Blink
 
 const DEBUG = false
-
 if DEBUG && !isdefined(Main, :w)
     w = Blink.Window()
 end
 
-USE_REDIS=false
-IS_PROD=haskey(ENV, "ON_HEROKU")
+const USE_REDIS = false
+const IS_PROD = haskey(ENV, "ON_HEROKU")
 
 include("../algo/algo.jl")
-# using .SnakePit: state, showcells
+using .SnakePit: state
 
 include("firstcall.jl")
 include("controller.jl")
 
-
-using Sockets
 function startServer()
 	if IS_PROD 
 		port = parse(Int, ENV["PORT"])

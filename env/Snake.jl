@@ -25,11 +25,7 @@ julia> env
 See also: [`SnakeEnv`](@ref) 
 
 """ 
-# module SnakePit
-
-export Game, SnakeEnv, Snake, Config, SType, Cell, Board
-export neighbours, reset!, step!, done
-export SNAKE_MAX_HEALTH, DIRECTIONS
+module SnakePit
 
 using Crayons
 
@@ -309,4 +305,4 @@ function kill!(board::Board, s::Snake, reason)
 	s.death_reason = reason
 end
 
-# end
+end

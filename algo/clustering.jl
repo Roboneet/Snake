@@ -104,12 +104,13 @@ end
 
 function gen(bfs::SnakeBFS)
 	bfs.generation = bfs.generation + 1
-	gen(bfs.cells, bfs.snake_states, bfs.generation)
+	gen(bfs, bfs.cells, bfs.snake_states, bfs.generation)
 end 
 
-function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
+function gen(bfs::SnakeBFS, cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 	for j=1:length(S)
 		s = S[j]
+		isalive(bfs, s) || continue
 		switch!(exp(s))
 		snake_tail = i - s.tail_lag
 		trail = s.snake.trail
