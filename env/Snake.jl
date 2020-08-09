@@ -25,7 +25,7 @@ julia> env
 See also: [`SnakeEnv`](@ref) 
 
 """ 
-module SnakePit
+# module SnakePit
 
 using Crayons
 
@@ -305,4 +305,4 @@ function kill!(board::Board, s::Snake, reason)
 	s.death_reason = reason
 end
 
-end
+# end

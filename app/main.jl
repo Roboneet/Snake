@@ -14,7 +14,7 @@ const USE_REDIS = false
 const IS_PROD = haskey(ENV, "ON_HEROKU")
 
 include("../algo/algo.jl")
-import .SnakePit: state, SnakeEnv, Config
+# import .SnakePit: state, SnakeEnv, Config
 
 include("firstcall.jl")
 include("controller.jl")

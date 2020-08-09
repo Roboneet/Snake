@@ -1,6 +1,6 @@
 include("../algo/algo.jl")
 
-import .SnakePit: SnakeEnv, Nsnakes, done, step!, state
+# import .SnakePit: SnakeEnv, Nsnakes, done, step!, state
 
 include("utils.jl")
 include("Human.jl")
