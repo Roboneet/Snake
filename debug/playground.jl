@@ -1,6 +1,6 @@
 include("../algo/algo.jl")
 
-using .SnakePit: SnakeEnv, Nsnakes, done, step!, state
+import .SnakePit: SnakeEnv, Nsnakes, done, step!, state
 
 include("utils.jl")
 include("Human.jl")
@@ -9,7 +9,6 @@ using Statistics
 using REPL
 using REPL.Terminals
 # using UnicodePlots 
-# using .SnakePit: Nsnakes, state
 
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
