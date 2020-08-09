@@ -8,6 +8,7 @@ include("Human.jl")
 using Statistics
 using REPL
 using REPL.Terminals
+using REPL.TerminalMenus
 # using UnicodePlots 
 
 DEFAULT_BOARD_SIZE = (10, 10)
@@ -157,4 +158,29 @@ mapframes(f, fr::Nothing) = []
 # 	end
 # 	plt
 # end
+
+
+function listAlgos()
+	return [ Basic, Grenade, sls(2), PartialExplore, FoodChase, SpaceChase ]
+end
+
+function tInput(x)
+	return x[request(RadioMenu(string.(x)))]
+end
+function play()
+	println("Choose board size")
+	boardSize = tInput([ (7, 7), (11, 11), (19, 19) ])
+	println("Choose the number of snakes")
+	n = tInput([1, 2, 4, 8])
+	s = []
+	while length(s) < n
+		println("Choose snake $(length(s) + 1)")
+		snake = tInput(listAlgos())
+		push!(s, snake)
+	end
+	println("Snakes: $(s)")
+	fr = play(s, SnakeEnv(boardSize, n))
+	viewgame(fr)
+	return fr
+end
 

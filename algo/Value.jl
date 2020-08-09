@@ -242,23 +242,6 @@ function value(::Type{Punk}, fr::Frame, i::Int)
 end
 
 # ==================================================================
-#                         ThreatValue
-# ==================================================================
-
-struct ThreatValue <: AbstractValue end
-
-value(::Type{ThreatValue}, fr::Frame, i::Int) = threatvalue(fr, i)
-
-# wip
-function threatvalue(fr::Frame, i::Int)
-	!alive(fr.state.snakes[i]) && return 0
-
-	c, d, l = listclusters(fr.state, i)
-	# println(colorarray(c))
-	return colorarray(c), d, l
-end
-
-# ==================================================================
 #                        LiveLongValue 
 # ==================================================================
 
