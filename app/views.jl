@@ -28,8 +28,9 @@ end
 
 start(x) = "ok"
 
+color_palette = range(colorant"rgb(201, 75, 75)", colorant"rgb(75, 19, 79)", length=15)
 function snake_info(req)
-    JSON.json((apiversion="1", color="#323232",))
+	JSON.json((apiversion="1", color="#$(Colors.hex(rand(color_palette)))",))
 end
 
 function test_store(req)

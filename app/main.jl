@@ -4,6 +4,7 @@ using JSON
 using HTTP
 using Sockets
 # using Blink
+using Colors
 
 const DEBUG = false
 if DEBUG && !isdefined(Main, :w)
