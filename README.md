@@ -1,6 +1,7 @@
 # Snake
 
-This repository contains the code I use to play [BattleSnake](https://play.battlesnake.com/)
+This repository contains the code I use to play [BattleSnake](https://play.battlesnake.com/).
+It consits of a snake pit environment, algorithms, the server and its Heroku setup and tools for debugging.
 
 [![asciicast](https://asciinema.org/a/352451.svg)](https://asciinema.org/a/352451)
 
@@ -76,3 +77,10 @@ end
 fr = play([MyAlgo, MyBetterAlgo], SnakeEnv((7, 7), 2))
 
 ```
+
+# TODO
+* Write docs for existing algorithms
+* Write docs for deploying algorithms
+* Write docs for debugging deployed algorithms
+* Write more docs...!
+

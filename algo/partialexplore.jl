@@ -1,3 +1,4 @@
+# TODO: Docs
 struct PartialExplore <: AbstractAlgo end
 
 pipe(::Type{PartialExplore}, s, i) = flow(
