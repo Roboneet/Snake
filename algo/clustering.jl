@@ -52,12 +52,13 @@ mutable struct SnakeState
 	exploration_set::ExpSet
 	has_eaten::Bool
 	tail_lag::Int
+	food_available::Int
 	power_boost::Int
 	move::Union{Tuple{Int,Int},Nothing}
 end
 
 SnakeState(snake::Snake, h::Array{Tuple{Int,Int},1}, m) = 
-SnakeState(snake, ExpSet([], h), false, 0, 0, m)
+SnakeState(snake, ExpSet([], h), false, 0, 0, 0, m)
 
 SnakeState(snake::Snake, m) = SnakeState(snake, Tuple{Int,Int}[], m)
 
@@ -382,8 +383,11 @@ end
 
 function maybe_eat(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int})
 	c = bfs.cells
-	ss.has_eaten = ss.has_eaten || c[x...].food 
-	c[x...].food = false
+	if c[x...].food
+		ss.has_eaten = true
+		ss.food_available += 1
+		c[x...].food = false
+	end
 end
 
 function markgen(bfs::SnakeBFS, x::Tuple{Int,Int})

@@ -39,14 +39,15 @@ function select(st, snakeid, moves, rcs; verbose=false)
 	for i=1:length(rcs) 
 		mat, clens, root = compile(rcs[i])
 		v = spacevalue(st, snakeid, mat, clens, root[snakeid])
-		me = filter(x -> id(x.snake) == snakeid, rcs[i].bfs.snake_states)[1]
-		l = me.tail_lag + 1
-		values[moves[i]] = v*l 
+		me = get_snake_state_by_id(rcs[i].bfs, snakeid)
+		# l = me.tail_lag + 1
+		f = me.food_available + 1
+		values[moves[i]] = v*f 
 		if verbose
 			@show moves[i]
 			println(colorarray(mat))
 			println(root)
-			@show v, l
+			@show v, f
 		end 
 		# values[moves[i]] = min(v, me.snake.health + me.power_boost)
 		# values[moves[i]] = v
