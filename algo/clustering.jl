@@ -346,10 +346,6 @@ function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; kwargs...)
 end
 
 function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; verbose=false, kwargs...)
-	if verbose
-		println(colorarray(init))
-	end
-
 	gen(bfs) # move tails
 	determine_snake_order!(bfs)
 	ordered_states = bfs.snake_states

@@ -115,6 +115,9 @@ function spacevalue(fr::Frame, i::Int; cap=100)
 	st = fr.state
 	spacevalue(st, i, c, d, l, cap)
 end
+
+# maximum amount of space reachable by snake i w.r.t total amount of space reachable
+# - total amount of space reachable depends on the moves of other snakes as well
 function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	ne = nempty(width(st), height(st), d, mode(st), length(st.snakes[i]))
 	A = width(st)*height(st)
@@ -132,6 +135,12 @@ function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	S = maximum(map(x -> haskey(d, x) ? pempty(d[x]) : 0, l))
 	# @show S
 	return S
+end
+
+# maximum amount of space reachable by snake i
+function abs_spacevalue(st::SType, i::Int, c, d, l)
+	isempty(l) && return 0
+	S = maximum(map(x -> haskey(d, x) ? d[x] : 0, l))
 end
 
 function listclusters(s::SType, i::Int)
