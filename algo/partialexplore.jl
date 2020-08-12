@@ -36,13 +36,19 @@ end
 
 function select(st, snakeid, moves, rcs; verbose=false)
 	values = Dict{Tuple{Int,Int},Int}()
-	for i=1:length(rcs) 
+	L = length(rcs)
+	for i=1:L
 		mat, clens, root = compile(rcs[i])
 		v = abs_spacevalue(st, snakeid, mat, clens, root[snakeid])
 		me = get_snake_state_by_id(rcs[i].bfs, snakeid)
 		# l = me.tail_lag + 1
 		f = me.food_available + 1
-		values[moves[i]] = v*f 
+		if L == 2
+			# dont use food_available when one move could be strictly better
+			values[moves[i]] = v
+		else
+			values[moves[i]] = v*f 
+		end
 		if verbose
 			@show moves[i]
 			println(colorarray(mat))
