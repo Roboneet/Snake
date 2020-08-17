@@ -50,7 +50,7 @@ alive(s::Snake) = s.alive
 health(s::Snake) = s.health
 health(s::Snake, i) = (s.health = i)
 
-Cell(indices) = Cell(indices, false, [], false, false, nothing)
+Cell(indices) = Cell(indices, false, [], false, false, false)
 Snake(i) = Snake(i, [], SNAKE_MAX_HEALTH, true, nothing, nothing)
 foodtime(t) = t + rand(9:12)
 Board() = Board((8, 8))
@@ -63,11 +63,10 @@ function Base.isequal(s::Snake, w::Snake)
 	return length(s) == length(w)
 end
 
-
 function cells(state::SType)
 	snakes = deepcopy.(state.snakes)
 	food = copy(state.food)
-	return cells(height(state), width(state), snakes, food)
+	return cells(height(state), width(state), snakes, food, state.hazards)
 end
 
 function cells(r, c)
@@ -78,7 +77,14 @@ function cells(r, c)
 	return cells
 end
 
-function cells(r, c, S, food)
+function mark_hazards(cls, hazards)
+	@inbounds for i=1:length(hazards)
+		x, y = hazards[i]
+		cls[x, y].hazardous = true
+	end
+end
+
+function cells(r, c, S, food, hazards=Tuple{Int,Int}[])
 	cls = cells(r, c)
 	@inbounds for j=1:length(S)
 		snake = S[j]
@@ -96,6 +102,7 @@ function cells(r, c, S, food)
 		food!(cls[x, y])
 	end
 
+	mark_hazards(cls, hazards)
 	markends(cls, S, true)
 	return cls
 end
@@ -106,7 +113,7 @@ function gamestate(g::Game)
 	b = g.board
 	return SType(g.config,
 				 b.food, b.snakes,
-				 g.ns, g.turn)
+				 g.ns, g.turn, b.hazards)
 end
 
 # peak performance...
@@ -114,7 +121,7 @@ function copystate(st::SType)
 	return SType(st.config,
 				 copy(st.food),
 				 deepcopy.(st.snakes),
-				 st.ns, st.turn)
+				 st.ns, st.turn, st.hazards)
 end
 
 
@@ -240,13 +247,15 @@ FKG_COLOR = :white
 FOOD_COLOR = (109, 22, 130)
 
 function showcell(io, cell)
-	if cell.value !== nothing
-		cellvalue(io, cell)
-	elseif unoccupied(cell)
-		cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)
+	bkg_color = BKG_COLOR
+	if cell.hazardous
+		bkg_color = (140, 152, 154)
+	end
+	if unoccupied(cell)
+		cr = Crayon(background=bkg_color, foreground=FKG_COLOR)
 		print(io, cr, LEGENDS[:unoccupied])
 	elseif hasfood(cell)
-		cr = Crayon(background=BKG_COLOR, foreground=FOOD_COLOR)
+		cr = Crayon(background=bkg_color, foreground=FOOD_COLOR)
 		print(io, cr, LEGENDS[:food])
 	else
 		s = snakes(cell)
@@ -261,7 +270,7 @@ function showcell(io, cell)
 				print(io, cr, " $(id) ")
 			end
 		else
-			cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)
+			cr = Crayon(background=bkg_color, foreground=FKG_COLOR)
 			print(io, LEGENDS[:collision])
 		end
 	end

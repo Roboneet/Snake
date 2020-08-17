@@ -14,10 +14,6 @@ using REPL.TerminalMenus
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
 
-function play(algo, env=DEFAULT_ENV)
-	play([algo for i=1:Nsnakes(env)], env)
-end
-
 function lifestats(algo, env=DEFAULT_ENV; progress=false)
 	m = 0
 	N = 100

@@ -35,6 +35,11 @@ function extract(params::Dict)
     height = board_p["height"]
     width = board_p["width"]
 	food = extract_food(board_p["food"], height, width)
+	if haskey(board_p, "hazards")
+		hazards = extract_food(board_p["hazards"], height, width)
+	else
+		hazards = Tuple{Int,Int}[]
+	end
     snakes = Snake[]
     me = -1
     for i=1:length(board_p["snakes"])
@@ -48,7 +53,7 @@ function extract(params::Dict)
     end
     mode = length(snakes) == 1 ? SINGLE_PLAYER_MODE : MULTI_PLAYER_MODE
     return (state=SType(Config(height, width, mode), food,
-        snakes, length(snakes), params["turn"]), me=me, gameid=gameid)
+        snakes, length(snakes), params["turn"], hazards), me=me, gameid=gameid)
 end
 
 function extract_food(f, height, width)

@@ -59,6 +59,7 @@ struct SType
 	snakes::Array{Snake,1}
 	ns::Int64
 	turn::Int64
+	hazards::Array{Tuple{Int,Int},1}
 end
 
 mutable struct Cell
@@ -68,13 +69,14 @@ mutable struct Cell
 	# colliding at the cell
 	ishead
 	istail
-	value # any metadata for the display
+	hazardous
 end
 
 mutable struct Board
 	cells::AbstractArray{Cell,2}
 	snakes::AbstractArray{Snake,1}
 	food
+	hazards
 end
 
 mutable struct Game
@@ -120,24 +122,19 @@ end
 function reset!(env::SnakeEnv)
 	g = env.game
 	st = gamestate(g)
-	env.game = Game((height(st), width(st),), length(snakes(g)))
+	env.game = Game((height(st), width(st),), length(snakes(g)), st.hazards)
 	return env
 end
-
-Config() = Config(0, 0, :DEFAULT)
-
-SType(n::Int) = SType(Config(), [], [], 0, n)
-SType() = SType(Config(), [], [], 0, 0)
 
 function Board(state::SType)
 	snakes = deepcopy.(state.snakes)
 	food = copy(state.food)
-	c = cells(height(state), width(state), snakes, food)
-	return Board(c, snakes, food)
+	c = cells(height(state), width(state), snakes, food, state.hazards)
+	return Board(c, snakes, food, state.hazards)
 end
 
 # Board(board size, number of snakes)
-function Board(size, n)
+function Board(size, n, hazards=Tuple{Int,Int}[])
 	c = cells(size...)
 	snakes = Array{Snake,1}(undef, n)
 	@inbounds for i=1:n
@@ -145,20 +142,31 @@ function Board(size, n)
 	end
 
 	initial_positions(snakes, c)
-	Board(c, snakes, create_food(c, n))
+	mark_hazards(c, hazards)
+	Board(c, snakes, create_food(c, n), hazards)
 end
 
-Game(size, n) = Game(Board(size, n), Config(size..., single_or_multi(n)))
-function Game(b::Board, c::Config, t=1)
+const HAZARDS = Tuple{Int,Int}[]
+Game(size::Tuple{Int,Int}, n::Int, hazards::Array{Tuple{Int,Int},1}=HAZARDS) = Game(Board(size, n, hazards), Config(size..., single_or_multi(n)))
+function Game(b::Board, c::Config, t::Int=1)
 	Game(b, t, foodtime(t), count(alive.(b.snakes)), c)
 end
 
 function Game(state::SType)
-	snakes = deepcopy.(state.snakes)
-	food = copy(state.food)
-	c = cells(height(state), width(state), snakes, food)
-	b = Board(c, snakes, food)
+	b = Board(state)
 	return Game(b, state.config, state.turn)
+end
+
+function SnakeEnv(size::Tuple{Int,Int}, n::Int, lims::Tuple{Int,Int,Int,Int})
+	r, c = size
+	i1, i2, j1, j2 = lims
+	hazards = Tuple{Int,Int}[]
+	for i=1:r, j=1:c
+		i1 < i < i2 && j1 < j < j2 && continue
+		push!(hazards, (i, j))
+	end
+	b = Board(size, n, hazards)
+	return SnakeEnv(Game(b, Config(size..., single_or_multi(n))))
 end
 
 function step!(g::Game, moves)
@@ -185,6 +193,10 @@ function step!(g::Game, moves)
 	return g
 end
 
+function in_hazard_zone(cells, h)
+	return cells[h...].hazardous
+end
+
 function move(board::Board, moves)
 	snakes = board.snakes
 
@@ -202,6 +214,10 @@ function move(board::Board, moves)
 			# snake hit a wall
 			kill!(board, s, :COLLIDED_WITH_A_WALL)
 			continue
+		end
+
+		if in_hazard_zone(cells, head(s))
+			health(s, health(s) - 25)
 		end
 
 		removetail!(board, s)

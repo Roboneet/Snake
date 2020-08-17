@@ -237,6 +237,7 @@ end
 
 function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
 	cell = bfs.cells[x...]
+	cell.hazardous && return false
 	s = snakes(cell)
 	isempty(s) && return true
 	i = s[1]

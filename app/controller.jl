@@ -1,15 +1,17 @@
 include("utils.jl")
 # include("store.jl")
 
+const punky = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
 algoDict = Dict()
 algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
 algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
 algoDict["wip"] = sls(4)
-algoDict["rainbow"] = Earthworm{3,Grenade,TreeSearch{NotBad,Punk,SeqLocalSearch{2}}}
-algoDict["antimatter"] = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
+algoDict["rainbow"] = Earthworm{3,Grenade,punky}
+algoDict["antimatter"] = punky
 algoDict["diamond"] = PartialExplore
+algoDict["moon"] = Earthworm{2,PartialExplore,punky}
 
 function whichalgo(req)
     if haskey(req, :params)
@@ -34,6 +36,13 @@ function test(f)
    end
 end
 
+function echo(f)
+	return req -> begin
+		@show req
+		f(req)
+	end
+end
+
 include("views.jl")
 function pages(start, fs...)
 	PAGE = (x) -> page(x...)
@@ -42,11 +51,14 @@ function pages(start, fs...)
 			 fs))
 end
 
+default_res = (snake_info, start, move, respond("ok"), foo)
+
 @app sankeserver = (
    logger,
    IS_PROD ? Mux.prod_defaults : Mux.defaults,
    page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
-   pages("/:s", snake_info, start, move, respond("ok"), foo)...,
-   pages("/test/:s", snake_info, test(start), test(move), respond("ok"), foo)...,
    page("/test/store/", test_store),
+   pages("/test/:s", test.(default_res)...)...,
+   pages("/echo/:s", echo.(default_res)...)...,
+   pages("/:s", default_res...)...,
    Mux.notfound())
