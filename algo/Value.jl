@@ -1,3 +1,5 @@
+using Statistics
+
 # ==================================================================
 #                         Interface
 # ==================================================================
@@ -298,7 +300,7 @@ function coop(fr, i)
 	M = width(fr.state) * height(fr.state)
 	m = ceil(M/l)
 	c, d, r = reachableclusters(fr.state, i)
-	println(colorarray(c))
+	# println(colorarray(c))
 	o = [max_occupied(d, r[j]) for j=1:l]
 	v = round(Int, std(o))
 	return M + max_occupied(d, r[i]) - v
