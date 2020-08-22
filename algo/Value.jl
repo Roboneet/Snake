@@ -285,6 +285,8 @@ end
 
 struct Coop <: AbstractValue end
 
+value(::Type{Coop}, fr::Frame, i::Int) = coop(fr, i)
+
 function manage_reward(s, lo, hi, MIN, MAX)
 	lo <= s <= hi && return s
 	s < lo && return s
