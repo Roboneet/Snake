@@ -302,6 +302,7 @@ function coop(fr, i)
 	c, d, r = reachableclusters(fr.state, i)
 	# println(colorarray(c))
 	o = [max_occupied(d, r[j]) for j=1:l]
+	l == 1 && return o[i]
 	v = round(Int, std(o))
-	return M + max_occupied(d, r[i]) - v
+	return M + o[i] - v
 end
