@@ -37,11 +37,16 @@ function (w::WSParser)(d::Dict)
         alive = (x["death"] === nothing)
         Snake(i, trail, x["health"], alive,
          direction, nothing)
-    end
-    food = extract_food(d["food"], height, width)
-	food = map(p -> (height - p[1] + 1, p[2],), food)
+	end
+	function plist(x)
+		food = extract_food(d[x], height, width)
+		food = map(p -> (height - p[1] + 1, p[2],), food)
+	end
+	food = plist("food")
+	hazards = plist("hazards")
+
     SType(w.config,
 		food,
         snakes, count(alive.(snakes)),
-        d["turn"])
+        d["turn"], hazards)
 end

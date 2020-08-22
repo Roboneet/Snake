@@ -148,11 +148,16 @@ function abs_spacevalue(fr::Frame, i::Int)
 	abs_spacevalue(st, i, c, d, l)
 end
 
+max_occupied(i, d, r) = max_occupied(d, r[i])
+
+function max_occupied(d, l)
+	isempty(l) && return 0
+	S = maximum(map(x -> haskey(d, x) ? d[x] : 0, l))
+end
 
 # maximum amount of space reachable by snake i
 function abs_spacevalue(st::SType, i::Int, c, d, l)
-	isempty(l) && return 0
-	S = maximum(map(x -> haskey(d, x) ? d[x] : 0, l))
+	max_occupied(d, l)
 end
 
 function listclusters(s::SType, i::Int)
@@ -287,17 +292,14 @@ struct Coop <: AbstractValue end
 
 value(::Type{Coop}, fr::Frame, i::Int) = coop(fr, i)
 
-function manage_reward(s, lo, hi, MIN, MAX)
-	lo <= s <= hi && return s
-	s < lo && return s
-	return max(0, s - hi)
-end
-
 function coop(fr, i)
 	!alive(fr.state.snakes[i]) && return 0
 	l = length(fr.state.snakes)
 	M = width(fr.state) * height(fr.state)
 	m = ceil(M/l)
-	s = min(health(fr.state.snakes[i]), abs_spacevalue(fr, i))
-	return manage_reward(s, floor(m/4), ceil(3m/4), 0, M)
+	c, d, r = reachableclusters(fr.state, i)
+	println(colorarray(c))
+	o = [max_occupied(d, r[j]) for j=1:l]
+	v = round(Int, std(o))
+	return M + max_occupied(d, r[i]) - v
 end
