@@ -122,6 +122,8 @@ function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	ne = nempty(width(st), height(st), d, mode(st), length(st.snakes[i]))
 	A = width(st)*height(st)
 	# @show ne
+	
+	# println(colorarray(c))
 
 	if ne == 0
 		println(fr)
@@ -133,9 +135,19 @@ function spacevalue(st::SType, i::Int, c, d, l, cap=100)
 	pempty(x) = min(floor(Int, x*A/ne), cap*A/100)
 
 	S = maximum(map(x -> haskey(d, x) ? pempty(d[x]) : 0, l))
-	# @show S
 	return S
 end
+
+function abs_spacevalue(fr::Frame, i::Int)
+	# @show alive(fr.state.snakes[i])
+	!alive(fr.state.snakes[i]) && return 0
+	# display(fr)
+	
+	c, d, l = listclusters(fr.state, i)
+	st = fr.state
+	abs_spacevalue(st, i, c, d, l)
+end
+
 
 # maximum amount of space reachable by snake i
 function abs_spacevalue(st::SType, i::Int, c, d, l)
@@ -266,3 +278,24 @@ function livelongvalue(fr::Frame, i::Int)
 	return max(0, spacevalue(fr, i) - lengthvalue(fr, i))
 end
 
+
+# ==================================================================
+#                        Cooperate 
+# ==================================================================
+
+struct Coop <: AbstractValue end
+
+function manage_reward(s, lo, hi, MIN, MAX)
+	lo <= s <= hi && return s
+	s < lo && return s
+	return max(0, s - hi)
+end
+
+function coop(fr, i)
+	!alive(fr.state.snakes[i]) && return 0
+	l = length(fr.state.snakes)
+	M = width(fr.state) * height(fr.state)
+	m = ceil(M/l)
+	s = min(health(fr.state.snakes[i]), abs_spacevalue(fr, i))
+	return manage_reward(s, floor(m/4), ceil(3m/4), 0, M)
+end

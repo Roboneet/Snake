@@ -289,3 +289,25 @@ end
 
 # Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)
 # Base.intersect(x, N::Int) = Minimax{Intersect{Tuple{x...},N}}
+
+# ==============================================================
+#                         Explorer 
+# ==============================================================
+# (my Dora) 
+# lookahead based on partial explore
+
+struct Explorer <: AbstractTorch end
+
+(c::Explorer)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
+(c::Explorer)(args...) = lookahead(c, args...)
+
+function lookat(::Explorer, s::SType, i::Int)
+	dir = basic(s, i)
+	N = length(s.snakes)
+	l = map(j -> j == i ?
+			dir :
+			[findmove(PartialExplore, s, j)],
+		1:N)
+	return allcombos(l)
+end
+
