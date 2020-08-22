@@ -233,8 +233,9 @@ struct HipHop <: AbstractValue end
 function value(::Type{HipHop}, fr::Frame, i::Int)
 	h = value(HealthValue, fr, i)
 	s = value(SpaceValue, fr, i)
+	l = value(LengthValue, fr, i)
 
-	return min(h, s)
+	return max(min(h, s) - l, 0)
 end
 
 # ==================================================================

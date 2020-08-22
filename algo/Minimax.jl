@@ -92,8 +92,9 @@ end
 function pipe(algo::Type{TreeSearch{R,V,T}}, s::SType, i::Int) where {R,V,T}
 	return DIR -> begin
 		K = treesearch(algo, s, i)
-		f = flow(closestreachablefood(s, i))
-		m = f(K)
+		# f = flow(closestreachablefood(s, i))
+		# m = f(K)
+		K
 	end
 end
 
