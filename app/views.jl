@@ -10,7 +10,7 @@ function move(req, wa=whichalgo)
     algo = wa(req)
     move = findmove(algo, st, me)
     k = eng(move)
-    return JSON.json((move=k,))
+	return JSON.json((move=k,shout=string(algo)))
 end
 
 test_intersect(req) = move(req, (r) -> sls(parse(Int, r[:params][:n])))
