@@ -12,7 +12,7 @@ algoDict["kettle"] = Kettle
 algoDict["wip"] = TreeSearch{BestCase,Coop,CandleLight{1}}
 algoDict["rainbow"] = Earthworm{3,Grenade,punk}
 algoDict["antimatter"] = punk
-algoDict["diamond"] = ff_punky
+algoDict["diamond"] = ff_punk
 algoDict["moon"] = Earthworm{2,ff_punk,punk}
 
 function whichalgo(req)
