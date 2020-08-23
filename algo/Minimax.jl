@@ -10,6 +10,32 @@ statereduce(t::Type{T}, v::Type{V}, fr::Frame, i::Int) where
 	error("Not implemented for type $T")
 
 # ==============================================================
+#                          BestCase
+# ==============================================================
+
+struct BestCase <: AbstractTreeReduce end
+
+statereduce(::Type{BestCase}, ::Type{V},
+			fr::Frame, i::Int) where V <: AbstractValue =
+bestcase(V, fr, i)[2]
+
+function bestcase(::Type{V},
+	fr::Frame, i::Int) where V <: AbstractValue
+
+	isempty(fr.children) && return statevalue(V, fr, i), Tuple{Int,Int}[]
+
+	U = 0
+	q = Dict{Tuple{Int,Int},Int}()
+	for (k, kr) in fr.children
+		u, m = bestcase(V, kr, i)
+		q[k[i]] = max(get!(q, k[i], 0), u + 1)
+	end
+
+	u, v = maxpairs(q)
+	return u, v
+end
+
+# ==============================================================
 #                          Minimax
 # ==============================================================
 

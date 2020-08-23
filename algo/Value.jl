@@ -297,12 +297,9 @@ value(::Type{Coop}, fr::Frame, i::Int) = coop(fr, i)
 function coop(fr, i)
 	!alive(fr.state.snakes[i]) && return 0
 	l = length(fr.state.snakes)
-	M = width(fr.state) * height(fr.state)
-	m = ceil(M/l)
 	c, d, r = reachableclusters(fr.state, i)
+	# println(fr)
 	# println(colorarray(c))
 	o = [max_occupied(d, r[j]) for j=1:l]
-	l == 1 && return o[i]
-	v = round(Int, std(o))
-	return M + o[i] - v
+	return minimum(o)
 end

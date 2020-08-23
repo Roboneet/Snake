@@ -189,6 +189,7 @@ end
 function pick_cells(f, cells, n, delete_neighbours=false)
 	free_cells = filter(unoccupied, Set(cells))
 	for i=1:n # pick one-by-one to guarentee uniqueness
+		isempty(free_cells) && return
 		cell = pick_cell!(free_cells)
 		f(cell, i)
 

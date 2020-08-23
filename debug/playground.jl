@@ -14,9 +14,24 @@ using REPL.TerminalMenus
 DEFAULT_BOARD_SIZE = (10, 10)
 DEFAULT_ENV = SnakeEnv(DEFAULT_BOARD_SIZE, 1)
 
-function lifestats(algo, env=DEFAULT_ENV; progress=false)
-	m = 0
-	N = 100
+function life(algo, env, progress, death_reasons, lens, lifelens)
+	reset!(env)
+	fr = play(algo, env)
+	sn = snakes(env.game)
+	foreach(sn) do x
+		dr = x.death_reason
+		dr == nothing && return
+		if !haskey(death_reasons, dr)
+			death_reasons[dr] = 0
+		end 
+		death_reasons[dr] += 1
+		push!(lens, length(x))
+	end
+	push!(lifelens, length(fr))
+end
+
+function lifestats(algo, env=SnakeEnv(DEFAULT_BOARD_SIZE, length(algo)); progress=false, 
+				   N = 100)
 	death_reasons = Dict()
 	lens = []
 	lifelens = []
@@ -24,17 +39,8 @@ function lifestats(algo, env=DEFAULT_ENV; progress=false)
 		if progress
 			@info "Life $i"
 		end
-		fr = play(algo, env)
-		sn = snakes(env.game)
-		foreach(sn) do x
-			dr = x.death_reason
-			if !haskey(death_reasons, dr)
-				death_reasons[dr] = 0
-			end 
-			death_reasons[dr] += 1
-			push!(lens, length(x))
-		end
-		push!(lifelens, length(fr))
+
+		life(algo, env, progress, death_reasons, lens, lifelens)
 	end
 	ml = mean(lifelens)
 	mlen = mean(lens)
