@@ -223,4 +223,5 @@ In practise, this algo can be as good as `TreeSearch` and sometimes even better 
 `PartialExplore` is on BattleSnake as `Inspector Clouseau`.
 
 You've reached the end of this document!
-![snake](https://raw.githubusercontent.com/Roboneet/Snake/master/snake_image.png)
+
+![snake](https://raw.githubusercontent.com/Roboneet/Snake/master/snake.png)
