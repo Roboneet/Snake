@@ -5,6 +5,8 @@ Develop, deploy and debug snakes on [BattleSnake](https://play.battlesnake.com/)
 Here's a random snake battle on terminal:
 [![asciicast](https://asciinema.org/a/352451.svg)](https://asciinema.org/a/352451)
 
+This is not a starter snake. The julia starter snake is [here](https://github.com/wookay/starter-snake-julia) 
+
 # Usage
 - `git clone https://github.com/Roboneet/Snake.git`
 - `cd Snake`
