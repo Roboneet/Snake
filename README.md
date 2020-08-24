@@ -189,8 +189,37 @@ moves = pipe(MyAlgo, st, 1)(DIRECTIONS)
 
 ```
 
+# Meet the inmates
+
+This repository contains somewhat useful algorithms. Here are a few of them.
+
+## Basic
+`Basic` provides basic collision avoidance. Filters moves that doesn't collide with a wall, or a snake body.
+
+## SpaceChase
+`SpaceChase` divides the board into clusters using `reachableclusters` algo (will describe later) and moves to cells that are a part of the biggest cluster nearby.
+
+## FoodChase
+`FoodChase` uses `A*` to find the cells closest to nearest food.
+
+## ComboChase
+`ComboChase` combines `Basic`, `SpaceChase` and `FoodChase` in that order
+
+## Grenade
+`Grenade` is my first snake! It is a greedy snake if any food is close to it. Otherwise, it chases it's tail
+
+## TreeSearch
+`TreeSearch` is a tree-search algorithm parameterised by a policy, value function and a function to guide the lookahead (referred to as torch). (The names given to these parameters don't make much sense because I ran out of sensible names! Any suggestions are welcome)
+
+`TreeSearch{NotBad,Punk,SeqLocalSearch{2}}` works pretty well without killing my server with state explosion. It does a lookahead of depth 2. SeqLocalSearch assigns a move that Grenade would choose to the other snakes on the board, except when they are two close and have a chance at killing mine. The value function considers the length of the snake and the maximum amount of space reachable by my snake (using my super `reachableclusters` algo :P). The policy chooses the better moves based on average of the values. This snake is on BattleSnake as `spark`.
+
+## PartialExplore
+`PartialExplore` adapts `reachableclusters` algo to create an approximate value function, hence eliminating tree search ( evil laugh...)
+
+In practise, this algo can be as good as `TreeSearch` and sometimes even better that `TreeSearch` with `SeqLocalSearch` lookahead because the approximated worst case is worser than the real worst case. (This is not always a good thing)
+
+`PartialExplore` is on BattleSnake as `Inspector Clouseau`.
 
 # TODO
-* Write docs for existing algorithms
 * Write more docs...!
 
