@@ -27,10 +27,10 @@ include("debug/playground.jl")
 
 ## Try playing
 
-```julia-repl
+```julia
 
 # interactive
-julia> play();
+play();
 
 ```
 
@@ -38,12 +38,12 @@ julia> play();
 
 Create a match with 2 algorithms
 
-```julia-repl
+```julia
 # play a game with Grenade and PartialExplore snakes
-julia> fr = play([Grenade, PartialExplore], SnakeEnv((10, 10), 2))
+fr = play([Grenade, PartialExplore], SnakeEnv((10, 10), 2))
 
 # view the game, press p to play
-julia> viewgame(fr)
+viewgame(fr)
 
 ```
 
@@ -105,7 +105,7 @@ fr = play([MyAlgo, MyBetterAlgo], SnakeEnv((7, 7), 2))
 The code for creating new algorithms by combining existing algos can be made shorter using `flow` function. 
 
 This is equivalent to the pipe function above
-```
+```julia
 pipe(::Type{MyBetterAlgo}, st, i) = flow(pipe(Basic, st, i), pipe(MyAlgo, st, i))
 ```
 
@@ -113,13 +113,13 @@ pipe(::Type{MyBetterAlgo}, st, i) = flow(pipe(Basic, st, i), pipe(MyAlgo, st, i)
 
 All you need to do to setup a server that can respond to the battlesnake engine is add your snake to `algoDict` inside `app/controller.jl`
 
-```
+```julia
 algoDict["mysnake"] = MyAlgo
 ```
 
 To spin up the server locally:
 
-```
+```bash
 julia --project="." -i app/mail.jl
 ```
 
