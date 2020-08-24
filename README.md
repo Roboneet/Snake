@@ -120,7 +120,7 @@ algoDict["mysnake"] = MyAlgo
 To spin up the server locally:
 
 ```bash
-julia --project="." -i app/mail.jl
+julia --project="." -i app/main.jl
 ```
 
 The server provides the battlesnake API at http://localhost:8080/mysnake
@@ -130,9 +130,11 @@ The port number can be changed by setting the environment variable `PORT` before
 The -i flag starts julia in interactive mode after running app/main.jl. So you can update your algorithms using the repl without a restart
 
 To make your algorithms available on a heroku server, connect a fork of the repository to heroku and add a julia buildpack to the heroku instance
+
 Buildpack options:
-[Optomatica/heroku-julia-sample](https://github.com/Optomatica/heroku-julia-sample)
-[wookay/heroku-buildpack-julia-13](https://github.com/wookay/heroku-buildpack-julia-13)
+
+* [Optomatica/heroku-julia-sample](https://github.com/Optomatica/heroku-julia-sample)
+* [wookay/heroku-buildpack-julia-13](https://github.com/wookay/heroku-buildpack-julia-13)
 
 View heroku logs : `heroku logs --tail`
 
