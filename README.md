@@ -199,7 +199,7 @@ This repository contains somewhat useful algorithms. Here are a few of them.
 `Basic` provides basic collision avoidance. Filters moves that doesn't collide with a wall, or a snake body.
 
 ## SpaceChase
-`SpaceChase` divides the board into clusters using `reachableclusters` algo (will describe later) and moves to cells that are a part of the biggest cluster nearby.
+`SpaceChase` divides the board into clusters using `reachableclusters` algo and moves to cells that are a part of the biggest cluster nearby.
 
 ## FoodChase
 `FoodChase` uses `A*` to find the cells closest to nearest food.
@@ -222,6 +222,5 @@ In practise, this algo can be as good as `TreeSearch` and sometimes even better 
 
 `PartialExplore` is on BattleSnake as `Inspector Clouseau`.
 
-# TODO
-* Write more docs...!
-
+You've reached the end of this document!
+![snake](https://raw.githubusercontent.com/Roboneet/Snake/master/snake_image.png)
