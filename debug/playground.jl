@@ -163,7 +163,8 @@ mapframes(f, fr::Nothing) = []
 
 
 function listAlgos()
-	return [ Basic, Grenade, sls(2), PartialExplore, FoodChase, SpaceChase ]
+	return [ Basic, Grenade, sls(2),
+			FoodChase, SpaceChase ]
 end
 
 function tInput(x)
@@ -181,6 +182,7 @@ function play()
 		push!(s, snake)
 	end
 	println("Snakes: $(s)")
+	println("Generating a game...")
 	fr = play(s, SnakeEnv(boardSize, n))
 	viewgame(fr)
 	return fr

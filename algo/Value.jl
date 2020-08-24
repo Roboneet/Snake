@@ -237,6 +237,7 @@ end
 # ==================================================================
 #                         JazzCop
 # ==================================================================
+# because naming is hard
 
 struct JazzCop <: AbstractValue end
 
@@ -304,7 +305,7 @@ function coop(c, d, r, l)
 	return minimum(o)
 end
 
-function coop(fr, i)
+function coop(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
 	l = length(fr.state.snakes)
 	c, d, r = reachableclusters(fr.state, i)
