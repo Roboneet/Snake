@@ -1,13 +1,15 @@
 # Snake
 
-Develop, deploy and debug snakes on [BattleSnake](https://play.battlesnake.com/).
+Develop, deploy and debug algorithms on [BattleSnake](https://play.battlesnake.com/).
 
 Here's a random snake battle on terminal:
 [![asciicast](https://asciinema.org/a/352451.svg)](https://asciinema.org/a/352451)
 
 This is not a starter snake. The julia starter snake is [here](https://github.com/wookay/starter-snake-julia) 
 
-# Usage
+## Usage
+---
+
 - `git clone https://github.com/Roboneet/Snake.git`
 - `cd Snake`
 - start julia
@@ -25,7 +27,7 @@ Pkg.instantiate()
 include("debug/playground.jl")
 ```
 
-## Try playing
+### Try playing
 
 ```julia
 
@@ -34,7 +36,7 @@ play();
 
 ```
 
-### Algo vs Algo
+#### Algo vs Algo
 
 Create a match with 2 algorithms
 
@@ -47,7 +49,7 @@ viewgame(fr)
 
 ```
 
-### Human vs Algo
+#### Human vs Algo
 
 Try playing with the an algo
 
@@ -55,8 +57,10 @@ Try playing with the an algo
 fr = play([Human, PartialExplore], SnakeEnv((10, 10), 2); verbose=true)
 ```
 
-## Develop algorithms 
+## Develop  
+---
 
+To create new snake algorithms
 * Create a subtype T of AbstractAlgo
 * Implement `pipe` for type T to filter the best moves
 
@@ -110,6 +114,7 @@ pipe(::Type{MyBetterAlgo}, st, i) = flow(pipe(Basic, st, i), pipe(MyAlgo, st, i)
 ```
 
 ## Deploy
+---
 
 All you need to do to setup a server that can respond to the battlesnake engine is add your snake to `algoDict` inside `app/controller.jl`
 
@@ -140,7 +145,9 @@ View heroku logs : `heroku logs --tail`
 
 This server is written using [Mux.jl](https://github.com/JuliaWeb/Mux.jl)
 
+
 ## Debug
+---
 
 ### Local Games
 
@@ -192,6 +199,7 @@ moves = pipe(MyAlgo, st, 1)(DIRECTIONS)
 ```
 
 # Meet the inmates
+---
 
 This repository contains somewhat useful algorithms. Here are a few of them.
 
