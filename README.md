@@ -36,27 +36,6 @@ play();
 
 [![asciicast](https://asciinema.org/a/352451.svg)](https://asciinema.org/a/352451)
 
-#### Algo vs Algo
-
-Create a match with 2 algorithms
-
-```julia
-# play a game with Grenade and PartialExplore snakes
-fr = play([Grenade, PartialExplore], SnakeEnv((10, 10), 2))
-
-# view the game, press p to play
-viewgame(fr)
-
-```
-
-#### Human vs Algo
-
-Try playing with the an algo
-
-```julia
-fr = play([Human, PartialExplore], SnakeEnv((10, 10), 2); verbose=true)
-```
-
 # Meet the inmates
 
 This repository contains somewhat useful algorithms. Here are a few of them.
@@ -76,7 +55,9 @@ This repository contains somewhat useful algorithms. Here are a few of them.
 ## TreeSearch
 `TreeSearch` is a tree-search algorithm parameterised by a policy, value function and a function to guide the lookahead. (The names given to these parameters don't make much sense because I ran out of sensible names! Any suggestions are welcome)
 
-`TreeSearch{NotBad,Punk,SeqLocalSearch{2}}` works pretty well without killing my server with state explosion. It does a lookahead of depth 2. SeqLocalSearch assigns a move that Grenade would choose to the other snakes on the board, except when they are too close and have a chance at killing mine. The value function considers the length of the snake and the maximum amount of space reachable by my snake (using my super `reachableclusters` algo :P). The policy chooses the better moves based on average of the values. This snake is on BattleSnake as `spark`.
+`TreeSearch{NotBad,Punk,SeqLocalSearch{2}}` works pretty well without killing my server with state explosion. It does a lookahead of depth 2. SeqLocalSearch assigns a move that Grenade would choose to the other snakes on the board, except when they are too close and have a chance at killing mine. The value function considers the length of the snake and the maximum amount of space reachable by my snake (using my super `reachableclusters` algo :P). The policy chooses the better moves based on average of the values. 
+
+This algorithm is on BattleSnake as `spark`. It recently won the a [summer league challenge](https://play.battlesnake.com/arena/summer-challenge-too-many-snakes/)
 
 ## PartialExplore
 `PartialExplore` adapts `reachableclusters` algo to create an approximate value function, hence eliminating tree search ( evil laugh...)
@@ -84,6 +65,30 @@ This repository contains somewhat useful algorithms. Here are a few of them.
 In practise, this algo can be as good as `TreeSearch` and sometimes even better that `TreeSearch` with `SeqLocalSearch` lookahead because the approximated worst case is worser than the real worst case. (This is not always a good thing) SeqLocalSearch may not always lookahead to the real worst case.
 
 `PartialExplore` is on BattleSnake as `Inspector Clouseau`.
+
+## Create Matches
+
+#### Algo vs Algo
+
+Create a match with 2 algorithms
+
+```julia
+# play a game with Grenade and FoodChase snakes
+fr = play([Grenade, FoodChase], SnakeEnv((10, 10), 2))
+
+# view the game, press p to play
+viewgame(fr)
+
+```
+
+#### Human vs Algo
+
+Try playing with the an algo
+
+```julia
+fr = play([Human, PartialExplore], SnakeEnv((10, 10), 2); verbose=true)
+```
+
 
 ## Develop  
 
