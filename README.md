@@ -213,12 +213,12 @@ This repository contains somewhat useful algorithms. Here are a few of them.
 ## TreeSearch
 `TreeSearch` is a tree-search algorithm parameterised by a policy, value function and a function to guide the lookahead (referred to as torch). (The names given to these parameters don't make much sense because I ran out of sensible names! Any suggestions are welcome)
 
-`TreeSearch{NotBad,Punk,SeqLocalSearch{2}}` works pretty well without killing my server with state explosion. It does a lookahead of depth 2. SeqLocalSearch assigns a move that Grenade would choose to the other snakes on the board, except when they are two close and have a chance at killing mine. The value function considers the length of the snake and the maximum amount of space reachable by my snake (using my super `reachableclusters` algo :P). The policy chooses the better moves based on average of the values. This snake is on BattleSnake as `spark`.
+`TreeSearch{NotBad,Punk,SeqLocalSearch{2}}` works pretty well without killing my server with state explosion. It does a lookahead of depth 2. SeqLocalSearch assigns a move that Grenade would choose to the other snakes on the board, except when they are too close and have a chance at killing mine. The value function considers the length of the snake and the maximum amount of space reachable by my snake (using my super `reachableclusters` algo :P). The policy chooses the better moves based on average of the values. This snake is on BattleSnake as `spark`.
 
 ## PartialExplore
 `PartialExplore` adapts `reachableclusters` algo to create an approximate value function, hence eliminating tree search ( evil laugh...)
 
-In practise, this algo can be as good as `TreeSearch` and sometimes even better that `TreeSearch` with `SeqLocalSearch` lookahead because the approximated worst case is worser than the real worst case. (This is not always a good thing)
+In practise, this algo can be as good as `TreeSearch` and sometimes even better that `TreeSearch` with `SeqLocalSearch` lookahead because the approximated worst case is worser than the real worst case. (This is not always a good thing) SeqLocalSearch may not always lookahead to the real worst case.
 
 `PartialExplore` is on BattleSnake as `Inspector Clouseau`.
 
