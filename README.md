@@ -8,7 +8,6 @@ Here's a random snake battle on terminal:
 This is not a starter snake. The julia starter snake is [here](https://github.com/wookay/starter-snake-julia) 
 
 ## Usage
----
 
 - `git clone https://github.com/Roboneet/Snake.git`
 - `cd Snake`
@@ -58,7 +57,6 @@ fr = play([Human, PartialExplore], SnakeEnv((10, 10), 2); verbose=true)
 ```
 
 ## Develop  
----
 
 To create new snake algorithms
 * Create a subtype T of AbstractAlgo
@@ -114,7 +112,6 @@ pipe(::Type{MyBetterAlgo}, st, i) = flow(pipe(Basic, st, i), pipe(MyAlgo, st, i)
 ```
 
 ## Deploy
----
 
 All you need to do to setup a server that can respond to the battlesnake engine is add your snake to `algoDict` inside `app/controller.jl`
 
@@ -147,7 +144,6 @@ This server is written using [Mux.jl](https://github.com/JuliaWeb/Mux.jl)
 
 
 ## Debug
----
 
 ### Local Games
 
@@ -199,7 +195,6 @@ moves = pipe(MyAlgo, st, 1)(DIRECTIONS)
 ```
 
 # Meet the inmates
----
 
 This repository contains somewhat useful algorithms. Here are a few of them.
 
