@@ -112,6 +112,20 @@ function end_(sc::Screen, fr)
 	show_cursor(sc.term)
 end
 
+# use BenchmarkTools.@btime for all serious stuff.
+# for a quick glance:
+function benchmark_over_frames(fr::Frame, algo, i) where T
+	times = []
+	roll(fr) do x 
+		t = @elapsed pipe(algo, fr.state, i)(DIRECTIONS)
+		push!(times, t)
+	end
+	@show mean(times)
+	@show maximum(times)
+	@show minimum(times)
+	return
+end
+
 function play(algos::Array, size::Tuple{Int,Int}; kwargs...)
 	play(algos, SnakeEnv(size, length(algos)); kwargs...)
 end

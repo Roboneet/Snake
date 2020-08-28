@@ -309,10 +309,15 @@ function compile!(uf::SnakeUF, init::RBuf, roots::Dict{Int, Array{Int,1}})
 end
 
 function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
+	rcstate = __reachableclusters__(cls, snks; kwargs...)
+	return compile(rcstate)
+end
+
+function __reachableclusters__(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
 	rcstate = create(cls, snks; kwargs...) 
 	markheads(rcstate)
 	explore!(rcstate; kwargs...)	
-	return compile(rcstate)
+	return rcstate
 end
 
 function sortValue(ss::SnakeState, i::Int)

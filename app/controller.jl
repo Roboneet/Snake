@@ -10,6 +10,7 @@ algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
 # algoDict["wip"] = sls(4)
 algoDict["wip"] = TreeSearch{BestCase,Coop,CandleLight{1}}
+algoDict["wip_lite"] = PartialExplore{partial_coop,partial_best,true}
 algoDict["rainbow"] = Earthworm{3,Grenade,punk}
 algoDict["antimatter"] = punk
 algoDict["diamond"] = ff_punk
