@@ -13,9 +13,6 @@ function move(req, wa=whichalgo)
 	return JSON.json((move=k,shout=string(algo)))
 end
 
-test_intersect(req) = move(req, (r) -> sls(parse(Int, r[:params][:n])))
-
-
 function foo(req)
     ex = extract(JSON.parse(String(req[:data])))
     st = ex[:state]

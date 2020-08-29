@@ -102,26 +102,18 @@ struct TreeSearch{
 	} <: AbstractAlgo end
 
 minimax(N=1) = TreeSearch{Minimax,JazzCop,CandleLight{N}}
-torch(l::Type{T}) where T <: AbstractTorch = T()
 
 function treesearch(::Type{TreeSearch{R,V,T}},
 	s::SType, i::Int) where {R, V, T}
-	b = basic(s, i)
-	length(b) <= 1 && return b
-	fr = lookahead(T, s, i)
-	# @show fr.stats.nodes
-	# viewtree(fr, i, V)
-	# min - max value
-	statereduce(R, V, fr, i)
+	return dir -> begin
+		fr = lookahead(T, s, i)
+		statereduce(R, V, fr, i)
+	end
 end
 
 function pipe(algo::Type{TreeSearch{R,V,T}}, s::SType, i::Int) where {R,V,T}
-	return DIR -> begin
-		K = treesearch(algo, s, i)
-		# f = flow(closestreachablefood(s, i))
-		# m = f(K)
-		K
-	end
+	return flow(pipe(Basic, s, i), treesearch(algo, s, i))
+				# closestreachablefood(s, i)
 end
 
 function closestreachablefood(s::SType, i::Int, f=listclusters) 

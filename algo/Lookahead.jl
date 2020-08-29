@@ -14,8 +14,7 @@ struct CandleLight{N} <: AbstractTorch end
 
 function lookahead(::Type{K}, s::SType, i::Int) where K <: AbstractTorch
 	fr = Frame(s, nothing)
-	t = torch(K)
-	t(s, i, fr)
+	K()(s, i, fr)
 end
 
 # A lookahead algo. Modify lookat() to reduce search space
@@ -82,47 +81,47 @@ function fillcol!(arr::T, n::Int, M::Int, k::Int) where T <: AbstractVector{<:Ab
 	return arr
 end
 
-# ==============================================================
-#                          1 Algo lookahead
-# ==============================================================
+# Not used
+# #                          1 Algo lookahead
+# # ==============================================================
 
-# follow the guiding staff
-# Use as: Minimax{Staff{FoodChase,2}}
-# not useful by itself
-struct Staff{A,N} <: AbstractTorch end
+# # follow the guiding staff
+# # Use as: Minimax{Staff{FoodChase,2}}
+# # not useful by itself
+# struct Staff{A,N} <: AbstractTorch end
 
-(c::Staff{A,N})(s::SType, i::Int, fr::Frame) where {A,N} = lookahead(c, s, i, N, fr)
-(c::Staff)(args...) = lookahead(c, args...)
+# (c::Staff{A,N})(s::SType, i::Int, fr::Frame) where {A,N} = lookahead(c, s, i, N, fr)
+# (c::Staff)(args...) = lookahead(c, args...)
 
-killer(s::SType, j::Int, i::Int) = findmove(Killer{i}, s, j)
+# killer(s::SType, j::Int, i::Int) = findmove(Killer{i}, s, j)
 
-function lookat(T::Staff{A,N}, s::SType, i::Int) where {A,N}
-	return [ntuple(j -> j == i ? findmove(A, s, i) : killer(s, j, i), length(s.snakes))]
-end
+# function lookat(T::Staff{A,N}, s::SType, i::Int) where {A,N}
+# 	return [ntuple(j -> j == i ? findmove(A, s, i) : killer(s, j, i), length(s.snakes))]
+# end
 
-# ==============================================================
-#                          One search
-# ==============================================================
+# # ==============================================================
+# #                          One search
+# # ==============================================================
 
-# look at all possible basic moves, with adversarial agents
+# # look at all possible basic moves, with adversarial agents
 
-struct OneSearch <: AbstractTorch end
-(c::OneSearch)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
-(c::OneSearch)(args...) = lookahead(c, args...)
+# struct OneSearch <: AbstractTorch end
+# (c::OneSearch)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
+# (c::OneSearch)(args...) = lookahead(c, args...)
 
-function killermoves(s::SType, i::Int, m)
-	N = length(s.snakes)
-	l = Dict(ntuple(
-		j -> j == i ?
-			j=>m :
-			j=>killer(s, j, i),
-		N)...)
-	moves = map(x -> ntuple(j -> j == i ? x : l[j], N), l[i])
-end
+# function killermoves(s::SType, i::Int, m)
+# 	N = length(s.snakes)
+# 	l = Dict(ntuple(
+# 		j -> j == i ?
+# 			j=>m :
+# 			j=>killer(s, j, i),
+# 		N)...)
+# 	moves = map(x -> ntuple(j -> j == i ? x : l[j], N), l[i])
+# end
 
-function lookat(T::OneSearch, s::SType, i::Int)
-	killermoves(s, i, basic(s, i))
-end
+# function lookat(T::OneSearch, s::SType, i::Int)
+# 	killermoves(s, i, basic(s, i))
+# end
 
 # ==============================================================
 #                          Seq search
@@ -258,56 +257,57 @@ function lookat(T::SeqLocalSearch{N}, s::SType, i::Int) where N
 	seqlocalmoves(s, i, basic(s, i))
 end
 
-# ==============================================================
-#                          Intersecting Algo lookahead
-# ==============================================================
+# Not used
+# # ==============================================================
+# #                          Intersecting Algo lookahead
+# # ==============================================================
 
-# Explore Intersecting moves from different algos
-struct Intersect{A <: Tuple,N} <: AbstractTorch end
-function (c::Intersect{A,N})(s::SType, i::Int, fr::Frame) where {A,N}
-	lookahead(c, s, i, N, fr)
-end
-(c::Intersect{A,N})(args...) where {A,N} = lookahead(c, args...)
+# # Explore Intersecting moves from different algos
+# struct Intersect{A <: Tuple,N} <: AbstractTorch end
+# function (c::Intersect{A,N})(s::SType, i::Int, fr::Frame) where {A,N}
+# 	lookahead(c, s, i, N, fr)
+# end
+# (c::Intersect{A,N})(args...) where {A,N} = lookahead(c, args...)
 
-function lookat(::Intersect{A,N}, s::SType, i::Int) where A <: Tuple where N
-	d = DIRECTIONS
-	for x in A.parameters
-		p = pipe(x, s, i)
-		k = intersect(d, p(DIRECTIONS))
-		if isempty(k)
-			break
-		else
-			d = k
-		end
-	end
-	# @show d
-	# display(Board(s))
-	# @show statevalue(Frame(s, nothing), i)
+# function lookat(::Intersect{A,N}, s::SType, i::Int) where A <: Tuple where N
+# 	d = DIRECTIONS
+# 	for x in A.parameters
+# 		p = pipe(x, s, i)
+# 		k = intersect(d, p(DIRECTIONS))
+# 		if isempty(k)
+# 			break
+# 		else
+# 			d = k
+# 		end
+# 	end
+# 	# @show d
+# 	# display(Board(s))
+# 	# @show statevalue(Frame(s, nothing), i)
 
-	seqlocalmoves(s, i, d)
-end
+# 	seqlocalmoves(s, i, d)
+# end
 
-# Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)
-# Base.intersect(x, N::Int) = Minimax{Intersect{Tuple{x...},N}}
+# # Base.intersect(x::Type{<:AbstractAlgo}...) = intersect(x, 2)
+# # Base.intersect(x, N::Int) = Minimax{Intersect{Tuple{x...},N}}
 
-# ==============================================================
-#                         Explorer 
-# ==============================================================
-# (my Dora) 
-# lookahead based on partial explore
+# # ==============================================================
+# #                         Explorer 
+# # ==============================================================
+# # (my Dora) 
+# # lookahead based on partial explore
 
-struct Explorer <: AbstractTorch end
+# struct Explorer <: AbstractTorch end
 
-(c::Explorer)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
-(c::Explorer)(args...) = lookahead(c, args...)
+# (c::Explorer)(s::SType, i::Int, fr::Frame) = lookahead(c, s, i, 1, fr)
+# (c::Explorer)(args...) = lookahead(c, args...)
 
-function lookat(::Explorer, s::SType, i::Int)
-	dir = basic(s, i)
-	N = length(s.snakes)
-	l = map(j -> j == i ?
-			dir :
-			[findmove(PartialExplore, s, j)],
-		1:N)
-	return allcombos(l)
-end
+# function lookat(::Explorer, s::SType, i::Int)
+# 	dir = basic(s, i)
+# 	N = length(s.snakes)
+# 	l = map(j -> j == i ?
+# 			dir :
+# 			[findmove(PartialExplore, s, j)],
+# 		1:N)
+# 	return allcombos(l)
+# end
 

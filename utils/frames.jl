@@ -7,17 +7,20 @@ using REPL.TerminalMenus: enableRawMode, disableRawMode, readKey
 mutable struct FrameStats
 	nodes
 end
-struct Frame
+
+abstract type AbstractFrame end
+
+struct Frame{T<:AbstractFrame} <: AbstractFrame
 	no::Int
 	state::SType
-	children::Dict
+	children::Dict{Any,T}
     prev
 	stats
 end
 
 turn(fr::Frame) = fr.no
-Frame(state::SType, prev) = Frame(state.turn, copystate(state),
-								  Dict(), prev, FrameStats(1))
+Frame(state::SType, prev) = Frame{Frame}(state.turn, copystate(state),
+								  Dict{Any,Frame}(), prev, FrameStats(1))
 
 haschild(fr::Frame, moves) = haskey(fr.children, moves)
 child(fr::Frame, moves) = fr.children[moves]

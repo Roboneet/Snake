@@ -13,8 +13,8 @@ function findmove(algo, s::SType, i::Int; kwargs...)
 end
 
 pipe(algo::Type{Basic}, s::SType, i::Int) = flow(canmove(s, i)...)
-basic(s::SType, i::Int) = alive(s.snakes[i]) ? pipe(Basic, s, i)(DIRECTIONS) :
-	[(0, 0)]
+basic(s::SType, i::Int) = alive(s.snakes[i]) ? (pipe(Basic, s, i)(DIRECTIONS))::DType :
+	Tuple{Int,Int}[(0, 0)]
 
 # ==============================================================
 #                          SpaceChase

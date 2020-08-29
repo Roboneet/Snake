@@ -34,4 +34,3 @@ function pipe(algo::Type{AvgMax{M}}, s::SType, i::Int) where M
 	end
 end
 
-Base.intersect(::Type{AvgMax}, x, N::Int) = AvgMax{Intersect{Tuple{x...},N}}

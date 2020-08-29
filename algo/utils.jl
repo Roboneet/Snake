@@ -161,14 +161,14 @@ function shortest_distance(cls::AbstractArray{Cell,2},
 end
 
 # higher order function to run a list of functions until the end or until one of it provides an empty output or there is only one element left
-flow(f) = x -> begin
-	o = f(x)
+flow(f::Function) = (x::DType) -> begin
+	o = f(x)::DType
 	isempty(o) && return x
 	return o
 end
 
-flow(f, g...) = x -> begin
-	o = f(x)
+flow(f::Function, g::Function...) = (x::DType) -> begin
+	o = f(x)::DType
 	isempty(o) && return x
 	length(o) == 1 && return o
 	return flow(g...)(o)

@@ -1,14 +1,11 @@
 """
     SnakePit
 
-SnakePit module provides the constructs to create an environment
+SnakePit provides the constructs to create an environment
 for a multi-player snake game
 
 # Examples
 ```julia-repl
-julia> import SnakePit: SnakeEnv, step!, done 
-julia> import SnakePit: UP_DIR, DOWN_DIR, LEFT_DIR, RIGHT_DIR
-
 # create a new environment with 2 snakes
 julia> env = SnakeEnv((7, 7), 2)
 
@@ -35,6 +32,7 @@ const DOWN_DIR = (1, 0)
 const LEFT_DIR = (0, -1)
 const RIGHT_DIR = (0, 1)
 const DIRECTIONS = [UP_DIR, RIGHT_DIR, DOWN_DIR, LEFT_DIR]
+const DType = typeof(DIRECTIONS) 
 const SINGLE_PLAYER_MODE = :SINGLE
 const MULTI_PLAYER_MODE = :MULTI
 
