@@ -314,7 +314,7 @@ function reachableclusters(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
 end
 
 function __reachableclusters__(cls::Array{Cell,2}, snks::Array{Snake,1}; kwargs...)
-	rcstate = create(cls, snks; kwargs...) 
+	rcstate = create(deepcopy(cls), snks; kwargs...) 
 	markheads(rcstate)
 	explore!(rcstate; kwargs...)	
 	return rcstate

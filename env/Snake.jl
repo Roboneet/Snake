@@ -89,6 +89,11 @@ mutable struct SnakeEnv
 	game::Game
 end
 
+const HAZARDS = Tuple{Int,Int}[]
+Config() = Config(0, 0, SINGLE_PLAYER_MODE)
+SType() = SType(Config(), Tuple{Int,Int}[], Snake[], 0, 0, HAZARDS)
+
+
 include("./utils.jl")
 
 """
@@ -144,7 +149,6 @@ function Board(size, n, hazards=Tuple{Int,Int}[])
 	Board(c, snakes, create_food(c, n), hazards)
 end
 
-const HAZARDS = Tuple{Int,Int}[]
 Game(size::Tuple{Int,Int}, n::Int, hazards::Array{Tuple{Int,Int},1}=HAZARDS) = Game(Board(size, n, hazards), Config(size..., single_or_multi(n)))
 function Game(b::Board, c::Config, t::Int=1)
 	Game(b, t, foodtime(t), count(alive.(b.snakes)), c)

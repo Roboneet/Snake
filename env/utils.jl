@@ -63,7 +63,45 @@ function Base.isequal(s::Snake, w::Snake)
 	return length(s) == length(w)
 end
 
+# Memoize cells(::SType) because it is called many times
+#
+# using these two packages brings the time taken down to 1 microsecond (cache hit) from 11 microseconds (no cache)
+#
+# using Memoize
+# using LRUCache
+
+# @memoize (() -> LRU{Tuple{SType},Array{Cell,2}}(maxsize=2)) 
+#
+# but we can do better, this function is repeatedly called for the same value and then another because 
+# the rest of the code runs sequentially
+#
+# using the below cells_last_call struct, the cache hit takes 45ns
+
+mutable struct cells_last_call	
+	state::SType
+	result::Array{Cell,2}
+end
+
+const clc = cells_last_call(SType(), Array{Cell,2}(undef, 0, 0))
+
 function cells(state::SType)
+	global clc
+	if clc.state != state
+		a = __cells__(state)
+		if clc == nothing
+			clc = cells_last_call(state, a)
+		else
+			clc.state = state
+			clc.result = a
+		end
+		# println("cache miss")
+	else
+		# println("cache hit")
+	end
+	return clc.result
+end
+	
+function __cells__(state::SType)
 	snakes = deepcopy.(state.snakes)
 	food = copy(state.food)
 	return cells(height(state), width(state), snakes, food, state.hazards)

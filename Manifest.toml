@@ -83,6 +83,11 @@ git-tree-sha1 = "b34d7cef7b337321e97d22242c3c2b91f476748e"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.0"
 
+[[LRUCache]]
+git-tree-sha1 = "788ab2f8a434a63f065ad962368a8cd0f8660a21"
+uuid = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
+version = "1.1.0"
+
 [[Lazy]]
 deps = ["MacroTools"]
 git-tree-sha1 = "ead48f10ad295afe72046ab0f2b9d704466452a0"
@@ -124,6 +129,12 @@ deps = ["Libdl", "Pkg"]
 git-tree-sha1 = "a0cb0d489819fa7ea5f9fa84c7e7eba19d8073af"
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.16.6+1"
+
+[[Memoize]]
+deps = ["MacroTools"]
+git-tree-sha1 = "62c5ae937a0d28704de3c300ae022e17a8903802"
+uuid = "c03570c3-d221-55d1-a50c-7939bbd78826"
+version = "0.4.3"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
