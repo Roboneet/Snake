@@ -41,7 +41,7 @@ end
 
 function echo(f)
 	return req -> begin
-		@show req
+		@show String(copy(req[:data]))
 		f(req)
 	end
 end
