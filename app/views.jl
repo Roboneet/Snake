@@ -1,7 +1,3 @@
-function findmove_with_timeout(algo, st, me)
-
-end
-
 function move(req, wa=whichalgo) 
     d = JSON.parse(String(copy(req[:data])))
     ex = extract(d)
@@ -10,7 +6,7 @@ function move(req, wa=whichalgo)
     algo = wa(req)
     move = findmove(algo, st, me)
     k = eng(move)
-	return JSON.json((move=k,shout=string(algo)))
+	return JSON.json((move=k,))
 end
 
 function foo(req)
