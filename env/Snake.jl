@@ -63,11 +63,11 @@ end
 mutable struct Cell
 	indices::Tuple{Int,Int}
 	food::Bool
-	snakes # snakes (indices) occupying the cell /
+	snakes::Array{Int,1} # snakes (indices) occupying the cell /
 	# colliding at the cell
-	ishead
-	istail
-	hazardous
+	ishead::Bool
+	istail::Bool
+	hazardous::Bool
 end
 
 mutable struct Board

@@ -227,12 +227,14 @@ function bfs_neighbours(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}; isspaw
 	return neighbours(x, size(bfs.cells)...)
 end
 
-function get_snake_state_by_id(bfs, i)
-	for x in bfs.snake_states
+function get_snake_state_by_id(bfs::SnakeBFS, i::Int)
+	ss = bfs.snake_states
+	for x in ss 
 		if i == id(x.snake)
-			return x
+			return x::SnakeState
 		end
 	end
+	return nothing
 end
 
 function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
@@ -360,13 +362,13 @@ function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; verbose=false, kw
 		ss = ordered_states[k]
 		explore!(init, bfs, uf, ss; kwargs...) 
 	end 
-	if verbose
-		println(colorarray(init))
-		showcells(stdout, bfs.cells)
-		@show bfs.generation
-		readline()
-		__cls__()
-	end
+	# if verbose
+	# 	println(colorarray(init))
+	# 	showcells(stdout, bfs.cells)
+	# 	@show bfs.generation
+	# 	readline()
+	# 	__cls__()
+	# end
 end
 
 function explore!(init, bfs, uf, ss; kwargs...) 

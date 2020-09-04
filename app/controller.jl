@@ -2,7 +2,7 @@ include("utils.jl")
 # include("store.jl")
 
 const punk = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
-const ff_punk = PartialExplore{partial_punk,partial_notbad,true}
+const ff_punk = PartialExplore{PartialNotBad,PartialPunk,true}
 algoDict = Dict()
 algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
@@ -10,7 +10,7 @@ algoDict["cupcake"] = Cupcake
 algoDict["kettle"] = Kettle
 # algoDict["wip"] = sls(4)
 algoDict["wip"] = TreeSearch{BestCase,Coop,CandleLight{1}}
-algoDict["wip_lite"] = PartialExplore{partial_coop,partial_best,true}
+algoDict["wip_lite"] = PartialExplore{PartialBest,PartialCoop,true}
 algoDict["rainbow"] = Earthworm{3,Grenade,punk}
 algoDict["antimatter"] = punk
 algoDict["diamond"] = ff_punk

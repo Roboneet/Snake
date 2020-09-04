@@ -87,13 +87,8 @@ const clc = cells_last_call(SType(), Array{Cell,2}(undef, 0, 0))
 function cells(state::SType)
 	global clc
 	if clc.state != state
-		a = __cells__(state)
-		if clc == nothing
-			clc = cells_last_call(state, a)
-		else
-			clc.state = state
-			clc.result = a
-		end
+		clc.state = state
+		clc.result =  __cells__(state)
 		# println("cache miss")
 	else
 		# println("cache hit")

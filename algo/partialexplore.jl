@@ -1,38 +1,49 @@
 # TODO: Docs
 
-function partial_lookahead(st, i, moves=DIRECTIONS)
-	rcs = considermoves(st, i, moves)
-	return map(x -> moves[x]=>rcs[x], 1:length(moves))
-end
+abstract type AbstractPartialValue end
+struct PartialCoop <: AbstractPartialValue end
+struct PartialPunk <: AbstractPartialValue end
 
-# not really a tree search, its basically a few floodfills
-function partial_treesearch(st::SType, i::Int, valuef, reducef, moves=DIRECTIONS; kwargs...)
-	evalmoves = valuef(st, i; kwargs...) ∘ partialmove(st, i; kwargs...)
-	reducef(evalmoves.(moves))
-end
+partialvalue(::Type{T}, st::SType, i::Int; kwargs...) where T = error("Not implemented for type $T")
 
-struct PartialExplore{V,R,Greedy} <: AbstractAlgo end
+abstract type AbstractPartialPolicy end
+struct PartialNotBad <: AbstractPartialPolicy end
+struct PartialBest <: AbstractPartialPolicy end
 
-pipe(::Type{PartialExplore{V,R,G}}, s, i) where {V,R,G} = flow(
+partialpolicy(::Type{T}, ps) where T = error("Not implemented for type $T")
+
+struct PartialExplore{R<:AbstractPartialPolicy,V<:AbstractPartialValue,Greedy} <: AbstractAlgo end
+
+pipe(::Type{PartialExplore{R,V,G}}, s, i) where {R,V,G} = flow(
 										  canmove(s, i)..., 
-										  partialexplore(s, i, V, R),
+										  partialexplore(s, i, R, V),
 										  G ? closestreachablefood(s, i) : identity
 										  )
 
-function partialexplore(st::SType, i::Int, V, R; kwargs...)
-	return dir -> partial_treesearch(st, i, V, R, dir; kwargs...)
+# not a tree search, its basically a few floodfills
+function partialexplore(st::SType, i::Int, ::Type{R}, ::Type{V}; kwargs...) where {R, V}
+	evalmove = partialvalue(V, st, i; kwargs...) ∘ partialmove(st, i; kwargs...)
+	return (moves::DType) -> begin
+		# res = evalmove.(moves)
+		res = similar(moves, Pair{eltype(DType),Array{Int64,1}})
+		for i=1:length(moves)
+			res[i] = evalmove(moves[i])
+		end
+		partialpolicy(R, res)
+	end
 end
 
+
 function partialmove(st::SType, snakeid::Int; kwargs...)
-	p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
-	return move -> begin
+	return (move::Tuple{Int,Int}) -> begin
+		p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
 		p[snakeid] = move
 		rcstate = __reachableclusters__(cells(st), st.snakes; moves=p, hero=snakeid, kwargs...)
 		return move => rcstate
 	end
 end
 
-function partial_coop(st, i; verbose=false)
+function partialvalue(::Type{PartialCoop}, st::SType, i::Int; verbose=false)
 	return p -> begin
 		m = first(p)
 		rc = last(p)
@@ -42,8 +53,8 @@ function partial_coop(st, i; verbose=false)
 	end
 end
 
-function partial_punk(st, i; verbose=false)
-	return p -> begin
+function partialvalue(::Type{PartialPunk}, st::SType, i::Int; verbose=false)
+	return (p::Pair{Tuple{Int,Int},RCState}) -> begin
 		m = first(p)
 		rc = last(p)
 		mat, clens, root = compile(rc)
@@ -51,10 +62,11 @@ function partial_punk(st, i; verbose=false)
 		me = get_snake_state_by_id(rc.bfs, i)
 		f = me.food_available + 1
 		if verbose
-			@show moves[i]
+			@show eng(m)
 			println(colorarray(mat))
 			println(root)
 			@show v, f
+			println("="^10)
 		end
 		return m=>[v, f]
 	end
@@ -69,11 +81,11 @@ function critical_value(p)
 	)
 end
 
-function partial_best(ps)
+function partialpolicy(::Type{PartialBest}, ps)
 	maxpairs(critical_value(ps))[2]
 end
 
-function partial_notbad(ps)
+function partialpolicy(::Type{PartialNotBad}, ps)
 	betterthanavg(critical_value(ps))[2]
 end
 
