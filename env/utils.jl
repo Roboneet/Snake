@@ -1,12 +1,16 @@
-
+# A couple of accessor functions
 mode(c::Config) = c.mode
 height(c::Config) = c.height
 width(c::Config) = c.width
+special(c::Config) = c.special
 
 turn(st::SType) = st.turn
 mode(st::SType) = mode(st.config)
 height(st::SType) = height(st.config)
 width(st::SType) = width(st.config)
+special(st::SType) = special(st.config)
+
+special(g::Game) = special(g.config)
 
 function Base.deepcopy_internal(t::Snake, d::IdDict)
 	d[t] = Snake(t.id, copy(t.trail), t.health,
@@ -48,7 +52,7 @@ end
 
 alive(s::Snake) = s.alive
 health(s::Snake) = s.health
-health(s::Snake, i) = (s.health = i)
+health!(s::Snake, i) = (s.health = i)
 
 Cell(indices) = Cell(indices, false, [], false, false, false)
 Snake(i) = Snake(i, [], SNAKE_MAX_HEALTH, true, nothing, nothing)
@@ -76,6 +80,7 @@ end
 # the rest of the code runs sequentially
 #
 # using the below cells_last_call struct, the cache hit takes 45ns
+# Victory! 
 
 mutable struct cells_last_call	
 	state::SType
@@ -349,6 +354,91 @@ function markends(cells, S, v=true)
 		hx, hy = head(snake)
 		@inbounds cells[tx, ty].istail = v
 		@inbounds cells[hx, hy].ishead = v
+	end
+end
+
+function decrease_health_by_one(board::Board, s::Snake)
+	health!(s, health(s) - 1)
+end
+
+function decrease_health_in_hazard_zone(board::Board, s::Snake)
+	if in_hazard_zone(board.cells, head(s))
+		health!(s, health(s) - 25)
+	end
+end
+
+function kill_if_collided_with_wall(board::Board, s::Snake)
+	if !in_bounds(head(s)..., board)
+		# snake hit a wall
+		kill!(board, s, :COLLIDED_WITH_A_WALL)
+	end
+end
+
+function kill_if_starved(board::Board, s::Snake)
+	if health(s) <= 0
+		# snake died out of starvation :(
+		kill!(board, s, :STARVATION)
+	end
+end
+
+function eat_if_possible(board::Board, s::Snake)
+	if caneat(board, s)
+		health!(s, SNAKE_MAX_HEALTH)
+		addtail!(board, s)
+	end
+end
+
+function kill_if_bit_itself(board::Board, s::Snake)
+	@inbounds cell = board.cells[head(s)...]
+	if length(snakes(cell)) == 1
+		H = hassnakebody(cell, s)
+		!H && return
+		# tried to bite itself
+		kill!(board, s, :BIT_ITSELF)
+	end
+end
+
+function othersnakes_at_head(board::Board, s::Snake)
+	cells = board.cells
+	@inbounds cell = cells[head(s)...]
+	K_ids = snakes(cell)
+	length(K_ids) == 1 && return []
+	L_ids = filter(x -> x != id(s), K_ids)
+	return filter(x -> in(id(x), L_ids), snakes(board)) # List of `Snake`, not just ids
+end
+
+function kill_if_bit_another_snake(board::Board, s::Snake)
+	@inbounds cell = board.cells[head(s)...]
+	peers = othersnakes_at_head(board, s)
+	if any(map(x -> hassnakebody(cell, x), peers))
+		# tried to bite another snake
+		kill!(board, s, :BIT_ANOTHER_SNAKE)
+		return
+	end
+end
+
+function kill_if_head_collision(board::Board, s::Snake)
+	peers = othersnakes_at_head(board, s)
+	if any(map(x -> s < x, peers)) # it dies
+			kill!(board, s, :HEAD_COLLISION)
+			return
+	end
+	if any(map(x -> isequal(s, x), peers)) # everyone dies
+		eachsnake(peers) do x
+			kill!(board, x, :HEAD_COLLISION)
+		end
+		kill!(board, s, :HEAD_COLLISION)
+		return
+	end
+end
+
+function spawn_food(g::Game)
+	if g.turn >= g.foodtime
+		board = g.board
+		a = length(filter(alive, board.snakes))
+		n = ceil(Int, a/2)
+		board.food = create_food(board.cells, n, board.food)
+		g.foodtime = foodtime(g.turn)
 	end
 end
 

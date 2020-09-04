@@ -49,6 +49,7 @@ struct Config
 	height::Int
 	width::Int
 	mode::Symbol
+	special # anything special about the game goes here 
 end
 
 struct SType
@@ -91,10 +92,25 @@ mutable struct SnakeEnv <: AbstractEnv
 end
 
 const HAZARDS = Tuple{Int,Int}[]
-Config() = Config(0, 0, SINGLE_PLAYER_MODE)
+Config() = Config(0, 0, SINGLE_PLAYER_MODE, nothing)
 SType() = SType(Config(), Tuple{Int,Int}[], Snake[], 0, 0, HAZARDS)
 
 include("./utils.jl")
+
+# if there are special rules, modify this
+function rules(::Nothing)
+	# each function is applied on all of the snakes, before the next
+	return [
+			kill_if_collided_with_wall, 
+			decrease_health_by_one,
+			decrease_health_in_hazard_zone,
+			kill_if_starved,
+			eat_if_possible,
+			kill_if_bit_itself,
+			kill_if_bit_another_snake,
+			kill_if_head_collision
+			]
+end
 
 """
 
@@ -152,7 +168,9 @@ function Board(size, n, hazards=Tuple{Int,Int}[])
 	Board(c, snakes, create_food(c, n), hazards)
 end
 
-Game(size::Tuple{Int,Int}, n::Int, hazards::Array{Tuple{Int,Int},1}=HAZARDS) = Game(Board(size, n, hazards), Config(size..., single_or_multi(n)))
+Game(size::Tuple{Int,Int}, n::Int, hazards::Array{Tuple{Int,Int},1}=HAZARDS) = 
+Game(Board(size, n, hazards), Config(size..., single_or_multi(n), nothing))
+
 function Game(b::Board, c::Config, t::Int=1)
 	Game(b, t, foodtime(t), count(alive.(b.snakes)), c)
 end
@@ -171,30 +189,17 @@ function SnakeEnv(size::Tuple{Int,Int}, n::Int, lims::Tuple{Int,Int,Int,Int})
 		push!(hazards, (i, j))
 	end
 	b = Board(size, n, hazards)
-	return SnakeEnv(Game(b, Config(size..., single_or_multi(n))))
+	return SnakeEnv(Game(b, Config(size..., single_or_multi(n), nothing)))
 end
 
 function step!(g::Game, moves)
 	board = g.board
 
-	move(board, moves)
-
 	g.turn += 1
-	if mode(g) == MULTI_PLAYER_MODE
-		if g.turn >= g.foodtime
-			a = length(filter(alive, board.snakes))
-			n = ceil(Int, a/2)
-			board.food = create_food(board.cells, n, board.food)
-			g.foodtime = foodtime(g.turn)
-		end
-	else
-		if isempty(board.food)
-			board.food = create_food(board.cells, 1, board.food)
-		end
-	end
+	move(board, moves, rules(special(g)))
+	spawn_food(g)
 
 	g.ns = count(alive.(snakes(g)))
-
 	return g
 end
 
@@ -202,90 +207,14 @@ function in_hazard_zone(cells, h)
 	return cells[h...].hazardous
 end
 
-function decrease_health_by_one(board::Board, s::Snake)
-	health(s, health(s) - 1)
-end
-
-function decrease_health_in_hazard_zone(board::Board, s::Snake)
-	if in_hazard_zone(board.cells, head(s))
-		health(s, health(s) - 25)
-	end
-end
-
-function kill_if_collided_with_wall(board::Board, s::Snake)
-	if !in_bounds(head(s)..., board)
-		# snake hit a wall
-		kill!(board, s, :COLLIDED_WITH_A_WALL)
-	end
-end
-
-function kill_if_starved(board::Board, s::Snake)
-	if health(s) <= 0
-		# snake died out of starvation :(
-		kill!(board, s, :STARVATION)
-	end
-end
-
-function eat_if_possible(board::Board, s::Snake)
-	if caneat(board, s)
-		health(s, SNAKE_MAX_HEALTH)
-		addtail!(board, s)
-	end
-end
-
-function kill_if_bit_itself(board::Board, s::Snake)
-	@inbounds cell = board.cells[head(s)...]
-	if length(snakes(cell)) == 1
-		H = hassnakebody(cell, s)
-		!H && return
-		# tried to bite itself
-		kill!(board, s, :BIT_ITSELF)
-	end
-end
-
-function othersnakes_at_head(board::Board, s::Snake)
-	cells = board.cells
-	@inbounds cell = cells[head(s)...]
-	K_ids = snakes(cell)
-	length(K_ids) == 1 && return []
-	L_ids = filter(x -> x != id(s), K_ids)
-	return filter(x -> in(id(x), L_ids), snakes(board)) # List of `Snake`, not just ids
-end
-
-function kill_if_bit_another_snake(board::Board, s::Snake)
-	@inbounds cell = board.cells[head(s)...]
-	peers = othersnakes_at_head(board, s)
-	if any(map(x -> hassnakebody(cell, x), peers))
-		# tried to bite another snake
-		kill!(board, s, :BIT_ANOTHER_SNAKE)
-		return
-	end
-end
-
-function kill_if_head_collision(board::Board, s::Snake)
-	peers = othersnakes_at_head(board, s)
-	if any(map(x -> s < x, peers)) # it dies
-			kill!(board, s, :HEAD_COLLISION)
-			return
-	end
-	if any(map(x -> isequal(s, x), peers)) # everyone dies
-		eachsnake(peers) do x
-			kill!(board, x, :HEAD_COLLISION)
-		end
-		kill!(board, s, :HEAD_COLLISION)
-		return
-	end
-end
-
-
-function resolvemoves(board::Board, snakes::Array{Snake,1}, rules...)
+function resolvemoves(board::Board, snakes::Array{Snake,1}, rules)
 	for r in rules
 		length(snakes) == 0 && return
 		snakes = __eachsnake__(s -> r(board, s), snakes)
 	end
 end
 
-function move(board::Board, moves)
+function move(board::Board, moves, rules)
 	snakes = board.snakes
 	food = board.food
 	markends(board, snakes, false)
@@ -295,16 +224,7 @@ function move(board::Board, moves)
 		move(board, s)
 	end
 
-	resolvemoves(board, snakes, 
-		kill_if_collided_with_wall, 
-		decrease_health_by_one,
-		decrease_health_in_hazard_zone,
-		kill_if_starved,
-		eat_if_possible,
-		kill_if_bit_itself,
-		kill_if_bit_another_snake,
-		kill_if_head_collision
-	)
+	resolvemoves(board, snakes, rules)
 
 	markends(board, snakes, true)
 	board.food = removefood(board, food)
