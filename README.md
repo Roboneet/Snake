@@ -64,7 +64,7 @@ This algorithm is on BattleSnake as `spark`. It recently won a [summer league ch
 
 In practise, this algo can be as good as `TreeSearch` and sometimes even better that `TreeSearch` with `SeqLocalSearch` lookahead because the approximated worst case is worser than the real worst case. (This is not always a good thing) SeqLocalSearch may not always lookahead to the real worst case.
 
-`PartialExplore` is on BattleSnake as `Inspector Clouseau`.
+`PartialExplore` is on BattleSnake as `Inspector Clouseau`. This recently won [another summer league challenge](https://play.battlesnake.com/arena/summer-challenge-royale/)
 
 ## Create Matches
 
@@ -114,7 +114,7 @@ end
 
 struct MyBetterAlgo <: AbstractAlgo
 
-# combines Basic and MyAlgo using flow function
+# combines Basic and MyAlgo (the hard way)
 function pipe(::Type{MyBetterAlgo}, st, i)
 	return dir -> begin
 		# basic collision avoidance 
@@ -122,7 +122,9 @@ function pipe(::Type{MyBetterAlgo}, st, i)
 		moves_in_bounds = pipe(Basic, st, i)(dir)
 
 		# edge cases
+		# none of the moves are good enough, return the previous result
 		length(moves_in_bounds) == 0 && return dir
+		# only one move is good, no more filtering required
 		length(moves_in_bounds) == 1 && return moves_in_bounds
 
 		first_move = pipe(MyAlgo, st, i)(moves_in_bounds)
@@ -169,7 +171,7 @@ To make your algorithms available on a heroku server, connect a fork of the repo
 
 Buildpack options:
 
-* [Optomatica/heroku-julia-sample](https://github.com/Optomatica/heroku-julia-sample)
+* [Optomatica/heroku-buildpack-julia](https://github.com/Optomatica/heroku-buildpack-julia)
 * [wookay/heroku-buildpack-julia-13](https://github.com/wookay/heroku-buildpack-julia-13)
 
 View heroku logs : `heroku logs --tail`
