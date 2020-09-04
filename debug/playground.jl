@@ -130,7 +130,7 @@ function play(algos::Array, size::Tuple{Int,Int}; kwargs...)
 	play(algos, SnakeEnv(size, length(algos)); kwargs...)
 end
 
-function play(algos::Array, env::SnakeEnv; verbose=false)
+function play(algos::Array, env::AbstractEnv; verbose=false)
 	N = Nsnakes(env)
 
 	sc = verbose ? Screen() : nothing

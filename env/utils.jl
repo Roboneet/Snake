@@ -332,9 +332,13 @@ function eachsnake(f, snakes::AbstractArray{Snake,1})
 	l = length(snakes)
 	for i=1:l
 		@inbounds snake = snakes[i]
-		!alive(snake) && continue
+		alive(snake) || continue
 		f(snake)
 	end
+end
+function __eachsnake__(f, snakes::AbstractArray{Snake,1})
+	eachsnake(f, snakes)
+	return filter(alive, snakes)
 end
 
 markends(b::Board, snakes, v=true) = markends(b.cells, snakes, v)

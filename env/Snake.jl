@@ -85,14 +85,14 @@ mutable struct Game
 	config::Config
 end
 
-mutable struct SnakeEnv
+abstract type AbstractEnv end
+mutable struct SnakeEnv <: AbstractEnv
 	game::Game
 end
 
 const HAZARDS = Tuple{Int,Int}[]
 Config() = Config(0, 0, SINGLE_PLAYER_MODE)
 SType() = SType(Config(), Tuple{Int,Int}[], Snake[], 0, 0, HAZARDS)
-
 
 include("./utils.jl")
 
@@ -113,19 +113,22 @@ See also: [SnakePit](@ref)
 SnakeEnv(size::Tuple{Int,Int}, n::Int) = SnakeEnv(Game(size, n)) 
 SnakeEnv(st::SType) = SnakeEnv(Game(st))
 
-done(env::SnakeEnv) = done(env.game)
+game(env::SnakeEnv) = env.game
+done(env::AbstractEnv) = done(game(env))
 
-function step!(env::SnakeEnv, moves)
-	game = env.game
-	step!(game, moves)
-	r = map(x -> alive(x) ? 1 : 0, snakes(game))
-	return state(env), r
+function step!(env::AbstractEnv, moves)
+	g = game(env)
+	step!(g, moves)
+	return state(env), 0
 end
 
-function reset!(env::SnakeEnv)
-	g = env.game
+game!(env::SnakeEnv, g) = (env.game = g;)
+state2game(st::SType, ::Type{Game}) = Game((height(st), width(st),), length(snakes(st)), st.hazards)
+
+function reset!(env::AbstractEnv)
+	g = game(env)
 	st = gamestate(g)
-	env.game = Game((height(st), width(st),), length(snakes(g)), st.hazards)
+	game!(env, state2game(st, Game))
 	return env
 end
 
@@ -199,80 +202,112 @@ function in_hazard_zone(cells, h)
 	return cells[h...].hazardous
 end
 
-function move(board::Board, moves)
-	snakes = board.snakes
-
-	food = board.food
-	cells = board.cells
-
-	markends(board, snakes, false)
-	for (s, m) in zip(snakes, moves)
-		!alive(s) && continue
-		health(s, health(s) - 1)
-
-		s.direction = m
-		move(board, s)
-		if !in_bounds(head(s)..., board)
-			# snake hit a wall
-			kill!(board, s, :COLLIDED_WITH_A_WALL)
-			continue
-		end
-
-		if in_hazard_zone(cells, head(s))
-			health(s, health(s) - 25)
-		end
-
-		removetail!(board, s)
-
-		if health(s) <= 0
-			# snake died out of starvation :(
-			kill!(board, s, :STARVATION)
-		elseif caneat(board, s)
-			health(s, SNAKE_MAX_HEALTH)
-			addtail!(board, s)
-		end
-
-	end
-	board.food = removefood(board, food)
-
-	handlecollisions(board, snakes)
-	markends(board, snakes, true)
+function decrease_health_by_one(board::Board, s::Snake)
+	health(s, health(s) - 1)
 end
 
-function handlecollisions(board::Board, S)
+function decrease_health_in_hazard_zone(board::Board, s::Snake)
+	if in_hazard_zone(board.cells, head(s))
+		health(s, health(s) - 25)
+	end
+end
+
+function kill_if_collided_with_wall(board::Board, s::Snake)
+	if !in_bounds(head(s)..., board)
+		# snake hit a wall
+		kill!(board, s, :COLLIDED_WITH_A_WALL)
+	end
+end
+
+function kill_if_starved(board::Board, s::Snake)
+	if health(s) <= 0
+		# snake died out of starvation :(
+		kill!(board, s, :STARVATION)
+	end
+end
+
+function eat_if_possible(board::Board, s::Snake)
+	if caneat(board, s)
+		health(s, SNAKE_MAX_HEALTH)
+		addtail!(board, s)
+	end
+end
+
+function kill_if_bit_itself(board::Board, s::Snake)
+	@inbounds cell = board.cells[head(s)...]
+	if length(snakes(cell)) == 1
+		H = hassnakebody(cell, s)
+		!H && return
+		# tried to bite itself
+		kill!(board, s, :BIT_ITSELF)
+	end
+end
+
+function othersnakes_at_head(board::Board, s::Snake)
 	cells = board.cells
-	eachsnake(S) do s
-		@inbounds cell = cells[head(s)...]
-		if length(snakes(cell)) == 1
-			H = hassnakebody(cell, s)
-			!H && return
-			# tried to bite itself
-			kill!(board, s, :BIT_ITSELF)
+	@inbounds cell = cells[head(s)...]
+	K_ids = snakes(cell)
+	length(K_ids) == 1 && return []
+	L_ids = filter(x -> x != id(s), K_ids)
+	return filter(x -> in(id(x), L_ids), snakes(board)) # List of `Snake`, not just ids
+end
+
+function kill_if_bit_another_snake(board::Board, s::Snake)
+	@inbounds cell = board.cells[head(s)...]
+	peers = othersnakes_at_head(board, s)
+	if any(map(x -> hassnakebody(cell, x), peers))
+		# tried to bite another snake
+		kill!(board, s, :BIT_ANOTHER_SNAKE)
+		return
+	end
+end
+
+function kill_if_head_collision(board::Board, s::Snake)
+	peers = othersnakes_at_head(board, s)
+	if any(map(x -> s < x, peers)) # it dies
+			kill!(board, s, :HEAD_COLLISION)
+			return
+	end
+	if any(map(x -> isequal(s, x), peers)) # everyone dies
+		eachsnake(peers) do x
+			kill!(board, x, :HEAD_COLLISION)
 		end
+		kill!(board, s, :HEAD_COLLISION)
+		return
+	end
+end
+
+
+function resolvemoves(board::Board, snakes::Array{Snake,1}, rules...)
+	for r in rules
+		length(snakes) == 0 && return
+		snakes = __eachsnake__(s -> r(board, s), snakes)
+	end
+end
+
+function move(board::Board, moves)
+	snakes = board.snakes
+	food = board.food
+	markends(board, snakes, false)
+
+	eachsnake(snakes) do s
+		s.direction = moves[id(s)]
+		move(board, s)
 	end
 
-	eachsnake(S) do s
-		@inbounds cell = cells[head(s)...]
-		L = filter(x -> x != id(s), snakes(cell))
-		length(L) == 0 && return
-		peers = filter(x -> in(id(x), L), S)
-		if any(map(x -> hassnakebody(cell, x), peers))
-			# tried to bite another snake
-			kill!(board, s, :BIT_ANOTHER_SNAKE)
-			return
-		end
-		if any(map(x -> s < x, peers)) # it dies
-			kill!(board, s, :HEAD_COLLISION)
-			return
-		end
-		if any(map(x -> isequal(s, x), peers)) # everyone dies
-			eachsnake(peers) do x
-				kill!(board, x, :HEAD_COLLISION)
-			end
-			kill!(board, s, :HEAD_COLLISION)
-			return
-		end
-	end
+	resolvemoves(board, snakes, 
+		kill_if_collided_with_wall, 
+		decrease_health_by_one,
+		decrease_health_in_hazard_zone,
+		kill_if_starved,
+		eat_if_possible,
+		kill_if_bit_itself,
+		kill_if_bit_another_snake,
+		kill_if_head_collision
+	)
+
+	markends(board, snakes, true)
+	board.food = removefood(board, food)
 end
 
 function removefood(board, food)
@@ -299,13 +334,13 @@ function move(b::Board, s::Snake)
 	else
 		push!(s.trail, p)
 	end
+	removetail!(b, s)
 end
 
 caneat(b::Board, snake) = @inbounds hasfood(b.cells[head(snake)...])
 
 function kill!(board::Board, s::Snake, reason)
 	!s.alive && return
-	# println("Kill: $(id(s)) >> $(reason)")
 	cells = board.cells
 	t = s.trail
 	for i=1:length(t)
@@ -316,7 +351,6 @@ function kill!(board::Board, s::Snake, reason)
 		!(id(s) in c) && continue
 		cell.snakes = c[c .!= id(s)]
 	end
-
 	s.alive = false
 	s.death_reason = reason
 end
