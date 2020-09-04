@@ -49,7 +49,7 @@ function partialvalue(::Type{PartialCoop}, st::SType, i::Int; verbose=false)
 		rc = last(p)
 		c, d, r = compile(rc)
 		l = length(st.snakes)
-		return m=>coop(c, d, r, l)
+		return m=>[coop(c, d, r, l)]
 	end
 end
 
