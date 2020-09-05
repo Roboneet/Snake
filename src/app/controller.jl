@@ -59,11 +59,11 @@ end
 default_res = (snake_info, start, move, respond("ok"), foo)
 
 @app sankeserver = (
-   logger,
-   IS_PROD ? Mux.prod_defaults : Mux.defaults,
-   page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
-   page("/test/store/", test_store),
-   pages("/test/:s", test.(default_res)...)...,
-   pages("/echo/:s", echo.(default_res)...)...,
-   pages("/:s", default_res...)...,
-   Mux.notfound())
+	logger,
+	Mux.defaults,
+	page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),
+	page("/test/store/", test_store),
+	pages("/test/:s", test.(default_res)...)...,
+	pages("/echo/:s", echo.(default_res)...)...,
+	pages("/:s", default_res...)...,
+	Mux.notfound())
