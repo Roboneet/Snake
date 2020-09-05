@@ -12,7 +12,7 @@ struct WSParser
     config::Config
 end
 
-WSParser(h, w) = WSParser(Config(h, w, MULTI_PLAYER_MODE))
+WSParser(h, w) = WSParser(Config(h, w, MULTI_PLAYER_MODE, nothing))
 
 smallkeys(x) = x
 smallkeys(x::AbstractArray) = smallkeys.(x)

@@ -35,7 +35,9 @@ function test(f)
 		  # simple names (types without parameters) will work
 		  algoDict[name] = eval(Meta.parse(name))
 	  end
-	  f(req)
+	  m = f(req)
+	  GC.gc()
+	  return m
    end
 end
 

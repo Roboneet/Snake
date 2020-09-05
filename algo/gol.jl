@@ -7,6 +7,8 @@ function step(a::Bool, n, t)
 	return (l == 3) || (a && l == 2)
 end
 
+function update_global!(::Type{Bool}, ::Nothing) end
+
 function GOL(k = Bool[
 					  0 1 0 0 0 0
 					  0 0 1 0 0 0
@@ -15,10 +17,8 @@ function GOL(k = Bool[
 					  0 0 0 0 0 0
 					  0 0 0 0 0 0
 					  ]
-			)
-
+			 )
 	legends = (i) -> i ? '▀' : ' '
-
 	grid = Grid(k, x -> begin
 					w = 6
 					l = [x + 1, 
@@ -30,15 +30,12 @@ function GOL(k = Bool[
 						 x + w + 1, 
 						 x + w - 1]
 					map(y -> ((y - 1 + 36) % 36) + 1, l)
-				end)
-
+				end, nothing)
 	current() = legends.(states(grid))
-
 	next!() = begin
 		step!(grid)
 		legends.(states(grid))
 	end
-
 	return current, next!
 end
 

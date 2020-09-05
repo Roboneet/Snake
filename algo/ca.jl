@@ -20,8 +20,8 @@ Base.show(io::IO, c::Cell) = Base.show(io, state(c))
 
 mutable struct Grid{T}
 	cells
-	tick 
-	function Grid(states, f) 
+	global_state
+	function Grid(states, f, global_state) 
 		cells = similar(states, Cell)
 		for i in eachindex(states) 
 			cells[i] = Cell(states[i], states[i], nothing)
@@ -29,20 +29,19 @@ mutable struct Grid{T}
 		for i in eachindex(cells)
 			cells[i].neighbours = neighbours(f, cells, i)
 		end
-		new{eltype(states)}(cells, 0)
+		new{eltype(states)}(cells, global_state)
 	end
-
 end
 
 function step(args...)
 	error("method not implemented")
 end
-function step!(g::Grid)
+function step!(g::Grid{T}) where T
 	c = g.cells
-	g.tick += 1
+	update_global!(T, g.global_state)
 	for i in eachindex(c)
 		n = state.(c[i].neighbours)
-		c[i].next = step(state(c[i]), n, g.tick)
+		c[i].next = step(state(c[i]), n, g.global_state)
 	end
 	for i in eachindex(c)
 		c[i].state = c[i].next
