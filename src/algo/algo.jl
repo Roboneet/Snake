@@ -1,4 +1,4 @@
-include("../env/Snake.jl") 
+include("../env/SnakePit.jl") 
 # import .SnakePit
 
 # import .SnakePit: SType, Game, Snake, Cell, Board, done, step!, reset!

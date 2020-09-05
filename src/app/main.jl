@@ -11,16 +11,13 @@ if DEBUG && !isdefined(Main, :w)
     w = Blink.Window()
 end
 
-const USE_REDIS = false
-const IS_PROD = haskey(ENV, "ON_HEROKU")
-
 include("../algo/algo.jl")
 # import .SnakePit: state, SnakeEnv, Config
 
-include("firstcall.jl")
 include("controller.jl")
 
 function startServer()
+	IS_PROD = haskey(ENV, "ON_HEROKU")
 	if IS_PROD 
 		port = parse(Int, ENV["PORT"])
 		ipaddr = ip"0.0.0.0"
@@ -33,6 +30,3 @@ function startServer()
 	end
 end
 
-startServer()
-
-Base.JLOptions().isinteractive==0 && wait()

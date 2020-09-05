@@ -3,7 +3,7 @@
 #
 #
 
-include("../env/Snake.jl")
+include("../env/SnakePit.jl")
 include("ca.jl")
 
 const MAX_HEALTH = 10

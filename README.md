@@ -22,7 +22,7 @@ Pkg.activate(".")
 Pkg.instantiate() 
 
 # load environment, algorithms and some utilities
-include("debug/playground.jl")
+include("src/debug/playground.jl")
 ```
 
 ### Try playing
@@ -214,7 +214,7 @@ moves = pipe(MyAlgo, st, 1)(DIRECTIONS)
 
 ```julia
 # one more utility
-include("debug/socket.jl")
+include("src/debug/socket.jl")
 
 str = """<paste the message inside triple quotes>"""
 wp = WSParser(11, 11) # for a 11x11 board

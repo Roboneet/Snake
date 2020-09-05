@@ -5,7 +5,7 @@
 # and filter these messages)
 
 using JSON
-include("../env/Snake.jl")
+include("../env/SnakePit.jl")
 include("../app/utils.jl")
 
 struct WSParser
