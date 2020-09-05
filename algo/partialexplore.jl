@@ -86,6 +86,6 @@ function partialpolicy(::Type{PartialBest}, ps)
 end
 
 function partialpolicy(::Type{PartialNotBad}, ps)
-	betterthanavg(critical_value(ps))[2]
+	__betterthanavg__(critical_value(ps))[2]
 end
 
