@@ -15,31 +15,6 @@
 # - cells : Graph for bfs
 # - result matrix : Graph for union find, visited set for bfs
 
-struct RCState
-	board
-	bfs
-	uf
-end
-
-unwrap(rc::RCState) = (rc.board, rc.bfs, rc.uf,)
-
-function gradient(S, E, n)
-	d(x, y, i) = floor(Int, (y[i] - x[i])/n)
-	D = (d(S, E, 1), d(S, E, 2), d(S, E, 3))
-	map(x -> S .+ (x - 1).*D, 1:n) 
-end
-
-function arraygradient(arr, S, E)
-	colorarray(arr, (-1, -1), 
-	gradient(S, E, maximum(arr))
-	)
-end
-
-function Base.show(io::IO, rc::RCState) 
-	println(io, arraygradient(rc.board, (0, 242, 96), (5, 117, 230)))
-	# println(io, arraygradient(rc.bfs.gboard, (201, 75, 75), (75, 19, 79))) 
-end
-
 const RBuf = Array{Int64,2} # this probably means Reachable Buffer
 
 mutable struct ExpSet
@@ -68,6 +43,7 @@ mutable struct SnakeBFS
 	generation::Int
 	hero::Int
 	gboard::RBuf # keeps track of the generation at which a cell is visited
+	special # the special struct from config for special environments
 end
 
 mutable struct ClusterInfo
@@ -81,6 +57,31 @@ ClusterInfo(x, y) = ClusterInfo(x, 1, x, y)
 
 struct SnakeUF{C}
 	clusters::C
+end
+
+struct RCState
+	board::RBuf
+	bfs::SnakeBFS
+	uf::SnakeUF
+end
+
+unwrap(rc::RCState) = (rc.board, rc.bfs, rc.uf,)
+
+function gradient(S, E, n)
+	d(x, y, i) = floor(Int, (y[i] - x[i])/n)
+	D = (d(S, E, 1), d(S, E, 2), d(S, E, 3))
+	map(x -> S .+ (x - 1).*D, 1:n) 
+end
+
+function arraygradient(arr, S, E)
+	colorarray(arr, (-1, -1), 
+	gradient(S, E, maximum(arr))
+	)
+end
+
+function Base.show(io::IO, rc::RCState) 
+	println(io, arraygradient(rc.board, (0, 242, 96), (5, 117, 230)))
+	# println(io, arraygradient(rc.bfs.gboard, (201, 75, 75), (75, 19, 79))) 
 end
 
 current(exp::ExpSet) = exp.current
@@ -137,12 +138,16 @@ function gen(cls::Array{Cell,2}, S::Array{SnakeState,1}, i::Int)
 end
 
 function create(cls::Array{Cell,2}, S::Array{Snake,1}; 
-				moves=map(x->nothing,S), hero=1, kwargs...)
+				moves=map(x->nothing,S), hero=1,
+				special=nothing, kwargs...)
 	# @show moves
 	return RCState(matrix(cls; default=-1), 
 				   SnakeBFS(cls, 
 							map(x -> SnakeState(S[x], moves[x]), 1:length(S)),
-							0, hero, matrix(cls; default=-1)),
+							0, 
+							hero, 
+							matrix(cls; default=-1), 
+							special),
 				   SnakeUF(ClusterInfo[])
 	)
 end
@@ -237,13 +242,26 @@ function get_snake_state_by_id(bfs::SnakeBFS, i::Int)
 	return nothing
 end
 
-function canvisit(bfs::SnakeBFS, x::Tuple{Int,Int})
+function canvisit(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}, sq::SquadConfig)
+	canvisit(bfs, ss, x, nothing) && return true
+	cell = bfs.cells[x...]
+	cell.hazardous && return false
+	sids = snakes(cell)
+	f = friends(sq, id(ss.snake))
+	return just_friends(sq, sids, f, id(ss.snake))
+end
+
+function canvisit(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int}, ::Nothing)
 	cell = bfs.cells[x...]
 	cell.hazardous && return false
 	s = snakes(cell)
 	isempty(s) && return true
 	i = s[1]
 	return !isalive(bfs, get_snake_state_by_id(bfs, i))
+end
+
+function canvisit(bfs::SnakeBFS, ss::SnakeState, x::Tuple{Int,Int})
+	canvisit(bfs, ss, x, bfs.special)
 end
 
 function visited(bfs::SnakeBFS, n::Tuple{Int,Int})
@@ -362,13 +380,13 @@ function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; verbose=false, kw
 		ss = ordered_states[k]
 		explore!(init, bfs, uf, ss; kwargs...) 
 	end 
-	# if verbose
-	# 	println(colorarray(init))
-	# 	showcells(stdout, bfs.cells)
-	# 	@show bfs.generation
-	# 	readline()
-	# 	__cls__()
-	# end
+	if verbose
+		println(colorarray(init))
+		showcells(stdout, bfs.cells)
+		@show bfs.generation
+		readline()
+		__cls__()
+	end
 end
 
 function explore!(init, bfs, uf, ss; kwargs...) 
@@ -425,7 +443,7 @@ end
 function spawn_cls(init::RBuf, bfs::SnakeBFS, uf::SnakeUF, ss::SnakeState, x::Tuple{Int,Int}) 
 	N = bfs_neighbours(bfs, ss, x; isspawn=true)
 	foreach(N) do n
-		canvisit(bfs, n) || return
+		canvisit(bfs, ss, n) || return
 		if visited(bfs, n) 
 			is_destroyed(init, n) && return
 			should_unvisit(init, bfs, uf, ss, n) || return
@@ -456,7 +474,7 @@ function explore!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF,
 		n = N[j]
 		nx, ny = n[1], n[2]
 		# init[n...] == 0 && continue # dont visit a prev head
-		canvisit(bfs, n) || continue
+		canvisit(bfs, ss, n) || continue
 		if visited(bfs, n)
 			is_destroyed(init, n) && continue
 			k = cluster(init, n)

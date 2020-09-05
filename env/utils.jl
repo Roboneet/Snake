@@ -9,6 +9,7 @@ mode(st::SType) = mode(st.config)
 height(st::SType) = height(st.config)
 width(st::SType) = width(st.config)
 special(st::SType) = special(st.config)
+snakes(st::SType) = st.snakes
 
 special(g::Game) = special(g.config)
 
@@ -381,10 +382,14 @@ function kill_if_starved(board::Board, s::Snake)
 	end
 end
 
-function eat_if_possible(board::Board, s::Snake)
-	if caneat(board, s)
+function eat!(board::Board, s::Snake)
 		health!(s, SNAKE_MAX_HEALTH)
 		addtail!(board, s)
+end
+
+function eat_if_possible(board::Board, s::Snake)
+	if caneat(board, s)
+		eat!(board, s)
 	end
 end
 
@@ -419,6 +424,7 @@ end
 
 function kill_if_head_collision(board::Board, s::Snake)
 	peers = othersnakes_at_head(board, s)
+	peers = filter(p -> head(p) == head(s), peers) # avoid bodies
 	if any(map(x -> s < x, peers)) # it dies
 			kill!(board, s, :HEAD_COLLISION)
 			return

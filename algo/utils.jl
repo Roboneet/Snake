@@ -46,9 +46,29 @@ function willtailmove(cell::Cell, cells, snakeslist)
 	return snake.trail[2] != snake.trail[1]
 end
 
+nextindex(st::SType, i::Int, x::Tuple{Int,Int}) = nextindex(st.snakes[i], x)
+nextindex(s::Snake, x::Tuple{Int,Int}) = head(s) .+ x
 
-freecell(cell::Cell, cells, snakes) = isempty(cell.snakes) ||
+freecell(st::SType, i::Int, x::Tuple{Int,Int}, cells, ::Nothing) = 
+	freecell(cells[nextindex(st, i, x)...], cells, st.snakes, nothing)
+freecell(cell::Cell, cells, snakes, ::Nothing) = isempty(cell.snakes) ||
 		 (cell.istail &&  willtailmove(cell, cells, snakes))
+
+function just_friends(sq::SquadConfig, sids, f, i)
+	# all snakes at the cell must be my friend
+	are_friends = sq.squads[sids] .== sq.squads[i]
+	# don't collide into my body
+	my_body = (i in sids)
+	return !my_body && all(are_friends)
+end
+
+function freecell(st::SType, i::Int, x::Tuple{Int,Int}, cells, sq::SquadConfig)
+	freecell(st, i, x, cells, nothing) && return true
+	cell = cells[nextindex(st, i, x)...]
+	f = friends(sq, i)
+	sids = snakes(cell)
+	return just_friends(sq, sids, f, i)
+end
 
 function connectionset(r::Int, c::Int)
 	connection = Array{Union{Nothing,Tuple{Int,Int}},2}(undef, (r, c))
@@ -220,7 +240,7 @@ end
 function canmove(s::SType, i::Int, I, cls)
 	!alive(s.snakes[i]) && return ((y) -> [(0, 0)],)
 	return choose(x -> in_bounds((I .+ x)..., height(s), width(s))),
-		choose(x -> freecell(cls[(I .+ x)...], cls, s.snakes))
+	choose(x -> freecell(s, i, x, cls, special(s)))
 end
 
 function canmove(s::SType, i)
@@ -478,7 +498,7 @@ end
 
 function reachableclusters(s::SType, i=1; kwargs...)
 	cls = cells(s)
-	return reachableclusters(cls, s.snakes; hero=i, kwargs...)
+	return reachableclusters(cls, s.snakes; hero=i, special=special(s), kwargs...)
 end
 
 function colorarray(g::Array{Int,2}, d::Dict{Int,Int},

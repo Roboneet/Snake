@@ -45,18 +45,42 @@ statereduce(::Type{Minimax}, ::Type{V},
 	fr::Frame, i::Int) where V <: AbstractValue =
 	minmaxreduce(V, fr, i)[2]
 
+keyselect(st::SType, i::Int) = keyselect(st, i, special(st))
+keyselect(st::SType, i::Int, ::Nothing) = (k -> k[i])
+
+function keyselect(st::SType, i::Int, sq::SquadConfig)
+	f = friends(sq, i)
+	return k -> k[f]
+end
+
+moveselect(st::SType, i::Int) = moveselect(st, i, special(st))
+moveselect(st::SType, i::Int, ::Nothing) = identity
+function moveselect(st::SType, i::Int, sq::SquadConfig)
+	f = friends(sq, i)
+	p = f .== i
+	return k -> k[p][1]
+end
+
 function minmaxreduce(::Type{V},
 	fr::Frame, i::Int) where V <: AbstractValue
+	f = moveselect(fr.state, i)
+	m = __minmaxreduce__(V, fr, i)
+	m[1], f.(m[2]), m[3]
+end
 
+function __minmaxreduce__(::Type{V},
+	fr::Frame, i::Int) where V <: AbstractValue
 	isempty(fr.children) && return statevalue(V, fr, i), [], Dict()
 
-	q = Dict{Tuple{Int,Int},Int}()
+	ks = keyselect(fr.state, i)
+	q = Dict{Any,Int}()
 	for (k, v) in fr.children
 		u, v, w = minmaxreduce(V, v, i)
-		if haskey(q, k[i])
-			q[k[i]] = min(q[k[i]], u + 1)
+		key = ks(k)
+		if haskey(q, key)
+			q[key] = min(q[key], u + 1)
 		else
-			q[k[i]] = u + 1 # bonus point for being alive upto this depth
+			q[key] = u + 1 # bonus point for being alive upto this depth
 		end
 	end
 
@@ -64,7 +88,7 @@ function minmaxreduce(::Type{V},
 	return u, v, q
 end
 
-function maxpairs(q::Dict{Tuple{Int,Int},T}) where T
+function maxpairs(q::Dict{A,T}) where {A, T}
 	Q = collect(pairs(q))
 	m = maximum(map(x -> x[2], Q))
 	m, map(y -> y[1], filter(x -> x[2] == m, Q))
@@ -80,10 +104,15 @@ struct NotBad <: AbstractTreeReduce end
 function statereduce(::Type{NotBad}, ::Type{V},
 	fr::Frame, i::Int) where V <: AbstractValue
 	u, v, q = minmaxreduce(V, fr, i)
-	betterthanavg(q)[2]
+	betterthanavg(fr.state, i, q)[2]
 end
 
-function betterthanavg(q::Dict{Tuple{Int,Int},T}) where T
+function betterthanavg(st::SType, i::Int, q::Dict{A,T}) where {A,T}
+	b = __betterthanavg__(q)
+	b[1], moveselect(st, i).(b[2])
+end
+
+function __betterthanavg__(q::Dict{A,T}) where {A,T}
 	Q = collect(pairs(q))
 	v = map(x -> x[2], Q)
 	m = sum(v) / length(v)

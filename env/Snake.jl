@@ -96,6 +96,7 @@ Config() = Config(0, 0, SINGLE_PLAYER_MODE, nothing)
 SType() = SType(Config(), Tuple{Int,Int}[], Snake[], 0, 0, HAZARDS)
 
 include("./utils.jl")
+include("./Squad.jl")
 
 # if there are special rules, modify this
 function rules(::Nothing)
@@ -139,12 +140,14 @@ function step!(env::AbstractEnv, moves)
 end
 
 game!(env::SnakeEnv, g) = (env.game = g;)
-state2game(st::SType, ::Type{Game}) = Game((height(st), width(st),), length(snakes(st)), st.hazards)
+state2newgame(st::SType, ::Type{Game}) = Game((height(st), width(st),), length(snakes(st));
+										   hazards=st.hazards,
+										   special=special(st))
 
 function reset!(env::AbstractEnv)
 	g = game(env)
 	st = gamestate(g)
-	game!(env, state2game(st, Game))
+	game!(env, state2newgame(st, Game))
 	return env
 end
 
@@ -168,8 +171,8 @@ function Board(size, n, hazards=Tuple{Int,Int}[])
 	Board(c, snakes, create_food(c, n), hazards)
 end
 
-Game(size::Tuple{Int,Int}, n::Int, hazards::Array{Tuple{Int,Int},1}=HAZARDS) = 
-Game(Board(size, n, hazards), Config(size..., single_or_multi(n), nothing))
+Game(size::Tuple{Int,Int}, n::Int; hazards::Array{Tuple{Int,Int},1}=HAZARDS, special=nothing) = 
+Game(Board(size, n, hazards), Config(size..., single_or_multi(n), special))
 
 function Game(b::Board, c::Config, t::Int=1)
 	Game(b, t, foodtime(t), count(alive.(b.snakes)), c)

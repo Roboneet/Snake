@@ -96,7 +96,7 @@ function viewnode(out::IO, fr::Frame, f, i, msg, d)
 	println(out, df)
 	print(out, Crayon(bold=true), "Child $i of $(branches(fr)) children")
 	println(out, df)
-	println(out, df, "Link: $(collect(keys(fr.children))[i])")
+	println(out, df, "Link: $(eng(collect(keys(fr.children))[i]))")
 	Base.show(out, Board(ch.state))
 	evalmsg(out, ch, f)
 	println(out, "⬅ \\ ➡ - view children | ↓ - select child

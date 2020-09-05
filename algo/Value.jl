@@ -300,6 +300,14 @@ struct Coop <: AbstractValue end
 
 value(::Type{Coop}, fr::Frame, i::Int) = coop(fr, i)
 
+
+coop(st::SType, i::Int, c, d, r, l, ::Nothing) = coop(c, d, r, l)
+
+function coop(st::SType, i::Int, c, d, r, l, sq::SquadConfig)
+	o = [max_occupied(d, r[j]) for j in friends(sq, i)]
+	return minimum(o)
+end
+
 function coop(c, d, r, l)
 	o = [max_occupied(d, r[j]) for j=1:l]
 	return minimum(o)
@@ -309,7 +317,7 @@ function coop(fr::Frame, i::Int)
 	!alive(fr.state.snakes[i]) && return 0
 	l = length(fr.state.snakes)
 	c, d, r = reachableclusters(fr.state, i)
-	# println(fr)
-	# println(colorarray(c))
-	coop(c, d, r, l)
+	coop(fr.state, i, c, d, r, l, special(fr.state))
 end
+
+
