@@ -58,7 +58,7 @@ end
 
 default_res = (snake_info, start, move, respond("ok"), foo)
 
-@app sankeserver = (
+@app snakeserver = (
 	logger,
 	Mux.defaults,
 	page("/", respond("<h1>bla ble blue..... I'm fine, thanks :)</h1>")),

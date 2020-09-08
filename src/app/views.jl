@@ -1,21 +1,22 @@
 function move(req, wa=whichalgo) 
-    d = JSON.parse(String(copy(req[:data])))
+    parsetime = @elapsed d = JSON.parse(String(copy(req[:data])))
     ex = extract(d)
     st = ex[:state]
     me = ex[:me]
     algo = wa(req)
-    move = findmove(algo, st, me)
+    evaltime = @elapsed move = findmove(algo, st, me)
     k = eng(move)
+	println("Metrics (algo: $(algo), parsetime: $(parsetime), evaltime: $(evaltime))")
 	return JSON.json((move=k,))
 end
 
 function foo(req)
-    ex = extract(JSON.parse(String(req[:data])))
-    st = ex[:state]
-    io = IOBuffer()
-    println(io, st.turn)
-    showcells(io, st)
-    println(String(take!(io)))
+    # ex = extract(JSON.parse(String(req[:data])))
+    # st = ex[:state]
+    # io = IOBuffer()
+    # println(io, st.turn)
+    # showcells(io, st)
+    # println(String(take!(io)))
     return "ok"
 end
 

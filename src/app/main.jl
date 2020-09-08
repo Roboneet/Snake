@@ -22,10 +22,10 @@ function startServer()
 		port = parse(Int, ENV["PORT"])
 		ipaddr = ip"0.0.0.0"
 		println("Starting...")
-		serve(sankeserver, ipaddr, port; reuseaddr=true)
+		serve(snakeserver, ipaddr, port; reuseaddr=true)
 		println("Serving on port $(ENV["PORT"])")
 	else
-		serve(sankeserver, haskey(ENV, "port") ? parse(Int, ENV["port"]) : 8080)
+		serve(snakeserver, haskey(ENV, "port") ? parse(Int, ENV["port"]) : 8080)
 		println("server started")
 	end
 end
