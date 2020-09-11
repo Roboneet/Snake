@@ -158,7 +158,7 @@ algoDict["mysnake"] = MyAlgo
 To spin up the server locally:
 
 ```bash
-julia --project="." -i app/main.jl
+julia --project="." -i src/Snakes.jl
 ```
 
 The server provides the battlesnake API at http://localhost:8080/mysnake

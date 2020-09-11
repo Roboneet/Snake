@@ -6,7 +6,7 @@ function move(req, wa=whichalgo)
     algo = wa(req)
     evaltime = @elapsed move = findmove(algo, st, me)
     k = eng(move)
-	println("Metrics (algo: $(algo), parsetime: $(parsetime), evaltime: $(evaltime))")
+	# println("Metrics (algo: $(algo), parsetime: $(parsetime), evaltime: $(evaltime))")
 	return JSON.json((move=k,))
 end
 
