@@ -16,21 +16,31 @@ mutable struct Cell{T}
 	next::T
 	neighbours
 end
-Base.show(io::IO, c::Cell) = Base.show(io, state(c))
+function Base.show(io::IO, c::Cell)
+	print(io, "Cell(")
+	Base.show(io, state(c))
+	print(io, ", $(length(c.neighbours)))")
+end
 
 mutable struct Grid{T}
 	cells
 	global_state
+	changed
 	function Grid(states, f, global_state) 
 		cells = similar(states, Cell)
 		for i in eachindex(states) 
 			cells[i] = Cell(states[i], states[i], nothing)
 		end
-		for i in eachindex(cells)
-			cells[i].neighbours = neighbours(f, cells, i)
+		r, cl = size(cells)
+		for j=1:cl, i=1:r
+			cells[i, j].neighbours = neighbours(f, cells, i, j)
 		end
 		new{eltype(states)}(cells, global_state)
 	end
+end
+
+function update_global!(args...)
+	error("method not implemented")
 end
 
 function step(args...)
@@ -61,8 +71,8 @@ function states(g::Grid, m)
 	return m
 end
 
-function neighbours(f, cells, i)
-	return cells[f(i)]
+function neighbours(f, cells, i, j)
+	return cells[f(i, j)]
 end
 
 end

@@ -27,7 +27,6 @@ end
 function (w::WSParser)(d::Dict)
     c = w.config
     height, width = c.height, c.width
-	
 	snakes = filter(x -> x["death"] === nothing, d["snakes"])
 	snakes = map(1:length(snakes)) do i
         x = snakes[i]
@@ -39,12 +38,11 @@ function (w::WSParser)(d::Dict)
          direction, nothing)
 	end
 	function plist(x)
-		food = extract_food(d[x], height, width)
-		food = map(p -> (height - p[1] + 1, p[2],), food)
+		y = extract_food(d[x], height, width)
+		map(p -> (height - p[1] + 1, p[2],), y)
 	end
 	food = plist("food")
 	hazards = plist("hazards")
-
     SType(w.config,
 		food,
         snakes, count(alive.(snakes)),

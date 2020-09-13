@@ -9,6 +9,7 @@ partialvalue(::Type{T}, st::SType, i::Int; kwargs...) where T = error("Not imple
 abstract type AbstractPartialPolicy end
 struct PartialNotBad <: AbstractPartialPolicy end
 struct PartialBest <: AbstractPartialPolicy end
+struct PartialScaled <: AbstractPartialPolicy end
 
 partialpolicy(::Type{T}, ps) where T = error("Not implemented for type $T")
 
@@ -38,7 +39,7 @@ function partialmove(st::SType, snakeid::Int; kwargs...)
 	return (move::Tuple{Int,Int}) -> begin
 		p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
 		p[snakeid] = move
-		rcstate = __reachableclusters__(cells(st), st.snakes; moves=p, hero=snakeid, kwargs...)
+		rcstate = __reachableclusters__(cells(st), st.snakes; moves=p, hero=snakeid)
 		return move => rcstate
 	end
 end
@@ -88,5 +89,9 @@ end
 
 function partialpolicy(::Type{PartialNotBad}, ps)
 	__betterthanavg__(critical_value(ps))[2]
+end
+
+function partialpolicy(::Type{PartialScaled}, ps)
+	__scaledreduce__(critical_value2(ps))[2]
 end
 

@@ -121,6 +121,32 @@ function __betterthanavg__(q::Dict{A,T}) where {A,T}
 end
 
 # ==============================================================
+#                   ScaledNotBad
+# ==============================================================
+
+struct ScaledNotBad <: AbstractTreeReduce end
+
+function statereduce(::Type{ScaledNotBad}, ::Type{V},
+	fr::Frame, i::Int) where V <: AbstractValue
+	u, v, q = minmaxreduce(V, fr, i)
+	scaledreduce(fr.state, i, q)[2]
+end
+
+function scaledreduce(st::SType, i::Int, q::Dict{A,T}) where {A,T}
+	b = __scaledreduce__(q)
+	b[1], moveselect(st, i).(b[2])
+end
+
+function __scaledreduce__(q::Dict{A,T}) where {A,T}
+	Q = collect(pairs(q))
+	v = maximum(map(x -> x[2], Q))
+	v, map(y -> y[1], filter(x -> x[2]/v >= 0.9, Q))
+end
+
+
+
+
+# ==============================================================
 #                       Tree search
 # ==============================================================
 

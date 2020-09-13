@@ -3,6 +3,7 @@ include("utils.jl")
 
 const punk = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
 const ff_punk = PartialExplore{PartialNotBad,PartialPunk,true}
+const scaled = PartialExplore{PartialScaled,PartialPunk,true}
 algoDict = Dict()
 algoDict["default"] = Grenade
 algoDict["grenade"] = Grenade
@@ -14,6 +15,7 @@ algoDict["wip_lite"] = PartialExplore{PartialBest,PartialCoop,true}
 algoDict["rainbow"] = Earthworm{3,Grenade,punk}
 algoDict["antimatter"] = punk
 algoDict["diamond"] = ff_punk
+algoDict["clumsy"] = Earthworm{2,scaled,ff_punk}
 algoDict["moon"] = Earthworm{2,ff_punk,punk}
 
 function whichalgo(req)

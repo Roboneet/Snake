@@ -1,6 +1,6 @@
-include("ca.jl")
+# include("ca.jl")
 
-import .CA: Grid, step!, states, step
+# import .CA: Grid, step!, states, step
 
 function step(a::Bool, n, t)
 	l = count(n)
@@ -19,8 +19,9 @@ function GOL(k = Bool[
 					  ]
 			 )
 	legends = (i) -> i ? '▀' : ' '
-	grid = Grid(k, x -> begin
+	grid = Grid(k, (i, j) -> begin
 					w = 6
+					x = w*(i - 1) + j
 					l = [x + 1, 
 						 x - 1, 
 						 x - w, 
@@ -33,9 +34,9 @@ function GOL(k = Bool[
 				end, nothing)
 	current() = legends.(states(grid))
 	next!() = begin
-		step!(grid)
+		CA.step!(grid)
 		legends.(states(grid))
 	end
-	return current, next!
+	return grid, current, next!
 end
 

@@ -329,8 +329,9 @@ function showcells(io, cells)
 	end
 end
 
-head(s::Snake) = s.trail[end]
-tail(s::Snake) = s.trail[1]
+trail(s::Snake) = s.trail
+head(s::Snake) = trail(s)[end]
+tail(s::Snake) = trail(s)[1]
 Base.length(s::Snake) = length(s.trail)
 id(s::Snake) = s.id
 
