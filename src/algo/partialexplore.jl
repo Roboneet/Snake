@@ -92,6 +92,6 @@ function partialpolicy(::Type{PartialNotBad}, ps)
 end
 
 function partialpolicy(::Type{PartialScaled}, ps)
-	__scaledreduce__(critical_value2(ps))[2]
+	__scaledreduce__(critical_value(ps))[2]
 end
 
