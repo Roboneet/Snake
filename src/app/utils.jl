@@ -41,6 +41,8 @@ function extract(params::Dict)
 		hazards = Tuple{Int,Int}[]
 	end
     snakes = Snake[]
+	squads = []
+	sq_track = Dict()
     me = -1
     for i=1:length(board_p["snakes"])
         u = board_p["snakes"][i]
@@ -50,9 +52,17 @@ function extract(params::Dict)
         trail = extract_snake_trail(u["body"], height, width)
 		direction = extract_snake_direction(trail)
         push!(snakes, Snake(i, trail, u["health"], true, direction, nothing))
+		if haskey(u, "squad")
+			sq = u["squad"]
+			if !haskey(sq_track, sq)
+				sq_track[sq] = length(keys(sq_track)) + 1
+			end
+			push!(squads, sq_track[sq])
+		end
     end
+	special = length(squads) == 0 ? nothing : SquadConfig(squads)
     mode = length(snakes) == 1 ? SINGLE_PLAYER_MODE : MULTI_PLAYER_MODE
-    return (state=SType(Config(height, width, mode, nothing), food,
+    return (state=SType(Config(height, width, mode, special), food,
         snakes, length(snakes), params["turn"], hazards), me=me, gameid=gameid)
 end
 
