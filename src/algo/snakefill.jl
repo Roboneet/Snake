@@ -91,9 +91,14 @@ function chooseheads(heads)
 	# we only have one snake on the board
 	# too many heads
 	# length(h) > 1 && return nothing
+	
+	# the max health one
+	j = map(x -> x.health, h)
+	J = maximum(j)
+	k = h[j .== J]
 
 	# the one
-	return h[1]
+	return k[1]
 end
 
 function isoccupied(sf, gs)

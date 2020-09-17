@@ -34,7 +34,6 @@ function partialexplore(st::SType, i::Int, ::Type{R}, ::Type{V}; kwargs...) wher
 	end
 end
 
-
 function partialmove(st::SType, snakeid::Int; kwargs...)
 	return (move::Tuple{Int,Int}) -> begin
 		p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
@@ -83,15 +82,13 @@ function critical_value(p)
 	Dict(map(x -> first(x)=>last(x)[1], p))
 end
 
-function partialpolicy(::Type{PartialBest}, ps)
+partialpolicy(::Type{PartialBest}, ps) =
 	maxpairs(critical_value(ps))[2]
-end
 
-function partialpolicy(::Type{PartialNotBad}, ps)
+partialpolicy(::Type{PartialNotBad}, ps) =
 	__betterthanavg__(critical_value(ps))[2]
-end
 
-function partialpolicy(::Type{PartialScaled}, ps)
+partialpolicy(::Type{PartialScaled}, ps) =
 	__scaledreduce__(critical_value(ps))[2]
-end
+
 
