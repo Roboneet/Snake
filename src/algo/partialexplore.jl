@@ -74,12 +74,12 @@ end
 
 function critical_value(p)
 	T = length(p) <= 2
-	# Dict(map(x -> T ? 
-	# 		 first(x)=>last(x)[1] : 
-	# 		 first(x)=>prod(last(x)), 
-	# 	p)
-	# )
-	Dict(map(x -> first(x)=>last(x)[1], p))
+	# Dict(map(x -> first(x)=>last(x)[1], p))
+	Dict(map(x -> T ? 
+			 first(x)=>last(x)[1] : 
+			 first(x)=>prod(last(x)), 
+		p)
+	)
 end
 
 partialpolicy(::Type{PartialBest}, ps) =
