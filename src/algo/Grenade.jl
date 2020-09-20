@@ -39,8 +39,10 @@ function __pipe__(algo::Type{T}, s::SType, i::Int; t=s.food, tailchase=true) whe
 		end
 
 		hasfood = !(length(t) == 1 && t[1] === nothing)
+		aggressive = false
+		killsmaller = aggressive ? choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s.snakes)) : identity
 		dir = (flow(through(hasfood || !tailchase, biggercluster(I, clusters, cdict)),
-			choose(x -> nearsmallsnake(cls[(I .+ x)...], snake, cls, s.snakes))) # may return 0 elements
+			killsmaller) # may return 0 elements
 		)(dir)
 
 		good_moves = hasfood ? astar(cls, I, t, dir) : tailchase ? astar(cls, I, [tail(snake)], dir) : dir
