@@ -33,15 +33,8 @@ function __pipe__(algo::Type{T}, s::SType, i::Int; t=s.food, tailchase=true) whe
 
 		dir = flow(canmove(s, i, I, cls)...,
 			choose(x -> !nearbigsnake(cls[(I .+ x)...], snake, cls, s.snakes)))(DIR)
-		# food = reachable(food, map(x -> I .+ x, dir), clusters)
-		# @show food
-		if health(snake) < SNAKE_MAX_HEALTH/3
-			if !isempty(food)
-				t = food
-			end
-		end
 
-		if isempty(food)
+		if health(snake) > 10 || isempty(food)
 			t = [nothing]
 		end
 
@@ -51,9 +44,7 @@ function __pipe__(algo::Type{T}, s::SType, i::Int; t=s.food, tailchase=true) whe
 		)(dir)
 
 		good_moves = hasfood ? astar(cls, I, t, dir) : tailchase ? astar(cls, I, [tail(snake)], dir) : dir
-		# @show :1, good_moves
 		good_moves = hasfood ? good_moves : biggercluster(I, clusters, cdict)(good_moves)
-		# @show :2, good_moves
 		return good_moves
 	end
 end
