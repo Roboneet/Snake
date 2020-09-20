@@ -1,7 +1,7 @@
 # VERSION A
 # a cellular automata version of clusterify's bfs with 1 snake
 #
-#
+
 using Colors
 include("../env/SnakePit.jl")
 include("ca.jl")
@@ -19,24 +19,38 @@ struct SnakefillA <: AbstractSnakefill
 	length::Int # maximum length possible when visiting
 end
 SnakefillA(l) = SnakefillA(l, false, 0, 0)
-
-function Base.show(io::IO, c::Grid{SnakefillA})
-	st = states(c)
-	visited = (st) -> st.visit
-	v = visited.(st)
-
-	fint = x -> floor(Int, x)
-	color = x -> fint.((x.r*255, x.g*255, x.b*255))
-
-	color_palette = range(colorant"#a26fbb", colorant"#17847f", length=max(maximum(v), 3))
-	print(io, colorarray(v, (-1, -1), color.(color_palette)))
-end
+visit(sf::SnakefillA) = sf.visit
+hasfood(sf::SnakefillA) = sf.food
 
 mutable struct SnakefillAGlobal
 	tick::Int
 	maxlength::Int
 	nextlengths::Array{Int,1}
 end
+
+function Base.show(io::IO, c::Grid{SnakefillA, SnakefillAGlobal})
+	st = states(c)
+	v = visit.(st)
+	m = v .- (-c.global_state.maxlength + c.global_state.tick)
+	fint = x -> floor(Int, x)
+	color = x -> fint.((x.r*255, x.g*255, x.b*255))
+	color_palette = range(colorant"#a26fbb", colorant"#17847f", length=max(maximum(m), 3))
+	println(io, c.global_state.maxlength)
+	print(io, colorarray(m, Tuple.(findall(hasfood.(st))), color.(color_palette)))
+end
+
+function showprop(c::Grid{SnakefillA}, f, l=nothing)
+	st = states(c)
+	v = Int.(f.(st))
+	fint = x -> floor(Int, x)
+	color = x -> fint.((x.r*255, x.g*255, x.b*255))
+	if l == nothing
+		l = max(maximum(v) - minimum(v), 3)
+	end
+	color_palette = range(colorant"#a26fbb", colorant"#17847f", length=l)
+	println(colorarray(v, [], color.(color_palette)))
+end
+
 
 function createCA(::Type{SnakefillA}, st::SType)
 	h, w = height(st), width(st)
@@ -74,58 +88,62 @@ function CA.update_global!(::Type{SnakefillA}, gs::SnakefillAGlobal)
 	gs.tick += 1
 end
 
-hasheadandalive(gs::SnakefillAGlobal) = n -> (n.visit == gs.tick - 1) && (n.health > 1)
+hasheadandalive(gs::SnakefillAGlobal) = n -> (n.visit == gs.tick - 1) && (n.health > gs.tick)
 
 function chooseheads(heads)
 	# no head
 	isempty(heads) && return nothing
-
 	# just one head
 	length(heads) == 1 && return heads[1]
-
 	# find head with max length
 	l = map(x -> x.length, heads)
 	L = maximum(l)
 	h = heads[l .== L]
-
 	# we only have one snake on the board
 	# too many heads
 	# length(h) > 1 && return nothing
-	
 	# the max health one
 	j = map(x -> x.health, h)
 	J = maximum(j)
 	k = h[j .== J]
-
 	# the one
 	return k[1]
 end
 
 function isoccupied(sf, gs)
-	return sf.visit + gs.maxlength >= gs.tick
+	return sf.visit + gs.maxlength > gs.tick
 end
 
 function everoccupied(sf)
 	return sf.visit > 0
 end
 
+# assign values to nf rather than allocating new memory
 function CA.step(sf::SnakefillA, n::Array{SnakefillA,1}, gs::SnakefillAGlobal)	
-	isoccupied(sf, gs) && return sf
-	everoccupied(sf) && return sf
-	heads = n[hasheadandalive(gs).(n)]
-	h = chooseheads(heads)
-	h == nothing && return sf
-	hl = h.health - 1
-	len = h.length
-	visit = gs.tick
-	if sf.food 
-		hl = MAX_HEALTH
-		len = len + 1
-		if len > gs.maxlength
-			push!(gs.nextlengths, len)
+	visit = sf.visit
+	food = sf.food
+	hl = sf.health
+	len = sf.length
+
+	if !(isoccupied(sf, gs) || everoccupied(sf))
+		heads = n[hasheadandalive(gs).(n)]
+		h = chooseheads(heads)
+		if h != nothing
+			hl = h.health
+			len = h.length
+			visit = gs.tick
+			if food 
+				food = false
+				hl = SNAKE_MAX_HEALTH + gs.tick
+				len = len + 1
+				if len > gs.maxlength
+					push!(gs.nextlengths, len)
+				end
+			end
 		end
 	end
-	return SnakefillA(visit, false, hl, len)
+
+	return SnakefillA(visit, food, hl, len)
 end
 
 

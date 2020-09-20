@@ -519,15 +519,17 @@ function colorarray(g::Array{Int,2}, d::Dict{Int,Int},
 	colorarray(g, (-1, -1), M)
 end
 
-function colorarray(g, x = (-1, -1), colors=SNAKE_COLORS)
+colorarray(g, x = [], colors=SNAKE_COLORS) =
+colorarray(g, y -> colors[(y - 1) % length(colors) + 1]; markers=x)
+
+function colorarray(g, color::Function; markers=[])
 	r, c = size(g)
 	bc = Crayon(background=:black)
 	df = Crayon(background=:default, foreground=:default)
 	io = IOBuffer()
 	num_rep = (x) -> lpad(x < 1 ? "$x" : "$(x) ", 3)
-	color(x) = colors[(x - 1) % length(colors) + 1]
 	foreach( i -> begin
-		foreach( y -> print(io, y[2], (i,y[1]) == x ? " ▤⃝ " : num_rep(g[i, y[1]])),
+		foreach( y -> print(io, y[2], (i,y[1]) in markers ? " ▤⃝ " : num_rep(g[i, y[1]])),
 			map(j -> g[i, j] < 1 ? (j, bc,) :
 			(j, Crayon(background=color(g[i, j]),
 				foreground=:white),), 1:c))

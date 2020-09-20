@@ -14,7 +14,7 @@ module CA
 mutable struct Cell{T}
 	state::T
 	next::T
-	neighbours
+	neighbours::Array{Cell{T},1}
 end
 function Base.show(io::IO, c::Cell)
 	print(io, "Cell(")
@@ -22,20 +22,21 @@ function Base.show(io::IO, c::Cell)
 	print(io, ", $(length(c.neighbours)))")
 end
 
-mutable struct Grid{T}
-	cells
-	global_state
-	changed
+mutable struct Grid{T,K}
+	cells::Array{Cell{T},2}
+	global_state::K
+	seeds::Union{Nothing,Array{Cell{T},1}}
 	function Grid(states, f, global_state) 
-		cells = similar(states, Cell)
+		T = eltype(states)
+		cells = similar(states, Cell{T})
 		for i in eachindex(states) 
-			cells[i] = Cell(states[i], states[i], nothing)
+			cells[i] = Cell(states[i], states[i], Cell{T}[])
 		end
 		r, cl = size(cells)
 		for j=1:cl, i=1:r
 			cells[i, j].neighbours = neighbours(f, cells, i, j)
 		end
-		new{eltype(states)}(cells, global_state)
+		new{T,typeof(global_state)}(cells, global_state, nothing)
 	end
 end
 
@@ -46,21 +47,36 @@ end
 function step(args...)
 	error("method not implemented")
 end
-function step!(g::Grid{T}) where T
-	c = g.cells
+
+cells(g::Grid) = g.cells
+seeds(g::Grid) = g.seeds
+
+function may_change_state(g::Grid)
+	seeds(g) == nothing && return cells(g)
+	unique(vcat(neighbours.(seeds(g))...))
+end
+
+function step!(g::Grid{T,K}) where {T,K}
 	update_global!(T, g.global_state)
-	for i in eachindex(c)
-		n = state.(c[i].neighbours)
-		c[i].next = step(state(c[i]), n, g.global_state)
+	m = may_change_state(g)
+	for c in m
+		n = state.(c.neighbours)
+		c.next = step(state(c), n, g.global_state)
 	end
-	for i in eachindex(c)
-		c[i].state = c[i].next
+	seeds = Cell{T}[]
+	for c in m
+		if c.state != c.next
+			push!(seeds, c)
+			c.state = c.next
+		end
 	end
+	g.seeds = seeds
+	return g
 end
 
 state(c::Cell) = c.state
 
-function states(g::Grid{T}) where T
+function states(g::Grid{T,K}) where {T,K}
 	states(g, similar(g.cells, T))
 end
 
@@ -74,6 +90,8 @@ end
 function neighbours(f, cells, i, j)
 	return cells[f(i, j)]
 end
+
+neighbours(cell::Cell{T}) where T  = cell.neighbours
 
 end
 
