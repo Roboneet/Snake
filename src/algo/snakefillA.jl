@@ -3,12 +3,9 @@
 #
 
 using Colors
-include("../env/SnakePit.jl")
-include("ca.jl")
 
+include("./ca.jl")
 import .CA: Grid, step!, states, step, update_global!
-
-const MAX_HEALTH = 10
 
 abstract type AbstractSnakefill end
 
@@ -90,11 +87,11 @@ end
 
 hasheadandalive(gs::SnakefillAGlobal) = n -> (n.visit == gs.tick - 1) && (n.health > gs.tick)
 
-function chooseheads(heads)
+function chooseheads(::Type{SnakefillA}, heads)
 	# no head
-	isempty(heads) && return nothing
+	isempty(heads) && return heads
 	# just one head
-	length(heads) == 1 && return heads[1]
+	length(heads) == 1 && return heads
 	# find head with max length
 	l = map(x -> x.length, heads)
 	L = maximum(l)
@@ -107,7 +104,7 @@ function chooseheads(heads)
 	J = maximum(j)
 	k = h[j .== J]
 	# the one
-	return k[1]
+	return k
 end
 
 function isoccupied(sf, gs)
@@ -127,8 +124,9 @@ function CA.step(sf::SnakefillA, n::Array{SnakefillA,1}, gs::SnakefillAGlobal)
 
 	if !(isoccupied(sf, gs) || everoccupied(sf))
 		heads = n[hasheadandalive(gs).(n)]
-		h = chooseheads(heads)
-		if h != nothing
+		H = chooseheads(SnakefillA, heads)
+		if !isempty(H)
+			h = H[1] # just choose the first one
 			hl = h.health
 			len = h.length
 			visit = gs.tick

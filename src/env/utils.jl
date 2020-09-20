@@ -258,13 +258,11 @@ end
 
 Base.show(io::IO, g::SnakeEnv) = show(io, g.game)
 Base.show(io::IO, g::Game) = show(io, g.board)
-function Base.show(io::IO, b::Board)
-	cells = b.cells
-	showcells(io, cells)
-end
+Base.show(io::IO, b::Board) = showcells(io, b.cells, b.snakes)
+
 showcells(io, s::SType) = showcells(io,
-									cells(height(s), width(s), s.snakes, s.food))
-showcells(cells) = showcells(stdout, cells)
+								cells(height(s), width(s), s.snakes, s.food), s.snakes)
+showcells(cells, snakes) = showcells(stdout, cells, snakes)
 
 LEGENDS = Dict(
 			   :empty => "   ",
@@ -286,7 +284,7 @@ BKG_COLOR = (173, 206, 214)
 FKG_COLOR = :white
 FOOD_COLOR = (109, 22, 130)
 
-function showcell(io, cell)
+function showcell(io, cell, S)
 	bkg_color = BKG_COLOR
 	if cell.hazardous
 		bkg_color = (140, 152, 154)
@@ -307,7 +305,9 @@ function showcell(io, cell)
 			elseif cell.istail
 				print(io, cr, LEGENDS[:tail])
 			else
-				print(io, cr, " $(id) ")
+				s = S[id]
+				# print(io, cr, connector(s.trail, cell.indices))
+				print(io, cr, " ○ ")
 			end
 		else
 			cr = Crayon(background=bkg_color, foreground=FKG_COLOR)
@@ -316,14 +316,62 @@ function showcell(io, cell)
 	end
 end
 
-function showcells(io, cells)
+function connector(trail, ele)
+	i = 1
+	for j=2:length(trail)
+		if ele == trail[j]
+			i = j
+			break
+		end
+	end
+	prev = trail[i - 1]
+	next = trail[i + 1]
+	dele = next .- prev
+	if any(dele .== 0)
+		if dele[1] == 0
+			return "---"
+		else
+			return " | "
+		end
+	else
+		v = (ele .- prev)[2] # prev column diff
+		# # corners
+		if dele == (1, 1)
+			if v == 0
+				return " ⌞ "
+			else
+				return " ⌝ "
+			end
+		elseif dele == (-1, -1)
+			if v == 0
+				return " ⌝ "
+			else
+				return " ⌞ "
+			end
+		elseif dele == (-1, 1)
+			if v == 0
+				return " ⌜ "
+			else
+				return " ⌟ "
+			end
+		else
+			if v == 0
+				return " ⌟ "
+			else 
+				return " ⌜ "
+			end
+		end
+	end
+end
+
+function showcells(io, cells, snakes)
 	r, c = size(cells)
 	cr = Crayon(background=BKG_COLOR, foreground=FKG_COLOR)
 	df = Crayon(background=:default, foreground=:default)
 	for i=1:r
 		for j=1:c
 			cell = cells[i, j]
-			showcell(io, cell)
+			showcell(io, cell, snakes)
 		end
 		println(io, df)
 	end
