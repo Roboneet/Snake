@@ -382,7 +382,7 @@ function explore_once!(init::RBuf, bfs::SnakeBFS, uf::SnakeUF; verbose=false, kw
 	end 
 	if verbose
 		println(colorarray(init))
-		showcells(stdout, bfs.cells)
+		showcells(stdout, bfs.cells, bfs.snake_states)
 		@show bfs.generation
 		readline()
 		__cls__()

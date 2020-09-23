@@ -2,6 +2,8 @@
 # a cellular automata version of clusterify
 
 struct SnakefillC <: AbstractSnakefill
+	id::Int
+	nullHead::Int # null head is ignored by cells#id != nullHead
 	visit::Int # tick at which this block was visited
 	food::Bool # true if block has food
 	health::UInt8 # maximum health possible when visiting
@@ -10,17 +12,22 @@ struct SnakefillC <: AbstractSnakefill
 	visitor::UInt8
 end
 
-SnakefillC(l, s) = SnakefillC(l, false, 0, 0, 0, s)
+SnakefillC(id, l, s) = SnakefillC(id, 0, l, false, 0, 0, 0, s)
 visit(sf::SnakefillC) = sf.visit
 hasfood(sf::SnakefillC) = sf.food
 cluster(sf::SnakefillC) = sf.clusterId
 visitor(sf::SnakefillC) = sf.visitor
 Base.length(sf::SnakefillC) = sf.length
 health(sf::SnakefillC) = sf.health
+function setnullhead(st::SnakefillC, sub::Int)
+	return SnakefillC(st.id, sub, st.visit, st.food,
+		  st.health, st.length, st.clusterId, st.visitor)
+end
 
 mutable struct ClusterInfoB
 	clusterId::UInt8
 	root::UInt8
+	visitor::UInt8
 end
 
 mutable struct SnakeTrack
@@ -65,22 +72,22 @@ function createCA(::Type{SnakefillC}, st::SType)
 	states = Array{SnakefillC,2}(undef, h, w)
 	l = -maximum(map(x -> length(x.trail), st.snakes))
 	for j=1:w, i=1:h
-		states[i, j] = SnakefillC(l, 0)
+		states[i, j] = SnakefillC((j-1)*h + i, l, 0)
 	end
-	for snake in st.snakes
+	for snake in filter(alive, st.snakes)
 		tr = trail(snake)
 		for i=1:length(tr)
 			visit = i - length(tr)
 			hl = health(snake)
 			len = length(tr)
 			old = states[tr[i]...]
-			states[tr[i]...] = SnakefillC(visit, false, hl, len, old.clusterId, id(snake))
+			states[tr[i]...] = SnakefillC(old.id, 0, visit, false, hl, len, old.clusterId, id(snake))
 		end
 	end
 	food = st.food
 	for i=1:length(food)
 		old = states[food[i]...] 
-		states[food[i]...] = SnakefillC(l, true, old.health, old.length, old.clusterId, old.visitor)
+		states[food[i]...] = SnakefillC(old.id, 0, l, true, old.health, old.length, old.clusterId, old.visitor)
 	end
 	fn = (i, j) -> begin
 		n = neighbours((i, j), h, w)
@@ -101,28 +108,38 @@ end
 hasheadandalive(gs::SnakefillCGlobal) = n -> (n.visit == gs.tick - 1) && (n.health > gs.tick)
 
 function __findmax(f, heads::Array{T,1}) where {T<:AbstractSnakefill} 
+	length(heads) <= 1 && return heads
 	l = map(f, heads)
 	L = maximum(l)
 	h = heads[l .== L]
 end
 
-function chooseheads(::Type{SnakefillC}, heads::Array{SnakefillC,1}, gs::SnakefillCGlobal)
+function filter_out_null_heads(heads, id)
+	isnullhead = x -> x.nullHead != 0
+	!any(isnullhead.(heads)) && return heads
+	filter(x -> !isnullhead(x) || x.nullHead == id, heads)
+end
+
+function chooseheads(::Type{SnakefillC}, heads::Array{SnakefillC,1}, gs::SnakefillCGlobal, id::Int)
 	# no head
 	isempty(heads) && return heads
+	H = filter_out_null_heads(heads, id)
 	# just one head
-	length(heads) == 1 && return heads
-	
+	length(H) == 1 && return H
+
 	# pick a visitor
-	v = visitor.(heads)
+	v = visitor.(H)
 	if length(unique(v)) != 1
-		bestvisitors = __findmax(length, heads)
+		bestvisitors = __findmax(length, H)
 		if length(bestvisitors) != 1 && length(unique(visitor.(bestvisitors))) != 1
 			# head on head collision of same length snakes
 			return SnakefillC[]
 		end
 	else
-		bestvisitors = heads
+		bestvisitors = H
 	end
+
+	length(bestvisitors) == 1 && return bestvisitors
 
 	r = roots(gs, bestvisitors)
 
@@ -143,10 +160,10 @@ function chooseheads(::Type{SnakefillC}, heads::Array{SnakefillC,1}, gs::Snakefi
 	return k
 end
 
-function createCluster!(gs::SnakefillCGlobal)
+function createCluster!(gs::SnakefillCGlobal, visitor)
 	cls = gs.clusters
 	n = length(cls) + 1
-	push!(cls, ClusterInfoB(n, n))
+	push!(cls, ClusterInfoB(n, n, visitor))
 	return n
 end
 
@@ -184,11 +201,11 @@ function CA.step(sf::SnakefillC, n::Array{SnakefillC,1}, gs::SnakefillCGlobal)
 
 	if !(isoccupied(sf, gs) || everoccupied(sf))
 		heads = n[hasheadandalive(gs).(n)]
-		H = chooseheads(SnakefillC, heads, gs)
+		H = chooseheads(SnakefillC, heads, gs, sf.id)
 		if !isempty(H)
 			h = H[1]
 			if h.clusterId == 0
-				clusterId = createCluster!(gs)
+				clusterId = createCluster!(gs, h.visitor)
 			else
 				clusterId = root(gs, h.clusterId)
 			end
@@ -208,7 +225,30 @@ function CA.step(sf::SnakefillC, n::Array{SnakefillC,1}, gs::SnakefillCGlobal)
 		end
 	end
 
-	return SnakefillC(visit, food, hl, len, clusterId, visitor)
+	return SnakefillC(sf.id, 0, visit, food, hl, len, clusterId, visitor)
+end
+
+
+
+function compile(gr::Grid{SnakefillC, SnakefillCGlobal})
+	mat = (x -> root(gr.global_state, x)).(states(gr))
+	cls = gr.global_state.clusters
+	lens = Dict{Int,Int}()
+	for m in mat
+		if !haskey(lens, m)
+			lens[m] = 0
+		end
+		lens[m] += 1
+	end
+	r = Dict{Int,Array{Int,1}}()
+	for c in cls
+		if !haskey(r, c.visitor)
+			r[c.visitor] = []
+		end
+		(c.root in r[c.visitor]) && continue
+		push!(r[c.visitor], c.root)
+	end
+	return mat, lens, r
 end
 
 

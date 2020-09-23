@@ -56,13 +56,14 @@ function may_change_state(g::Grid)
 	unique(vcat(neighbours.(seeds(g))...))
 end
 
-function step!(g::Grid{T,K}) where {T,K}
-	update_global!(T, g.global_state)
-	m = may_change_state(g)
+function populatenext!(g::Grid, m)
 	for c in m
 		n = state.(c.neighbours)
 		c.next = step(state(c), n, g.global_state)
 	end
+end
+
+function update_states!(g::Grid{T,K}, m) where {T,K}
 	seeds = Cell{T}[]
 	for c in m
 		if c.state != c.next
@@ -71,6 +72,13 @@ function step!(g::Grid{T,K}) where {T,K}
 		end
 	end
 	g.seeds = seeds
+end
+
+function step!(g::Grid{T,K}) where {T,K}
+	update_global!(T, g.global_state)
+	m = may_change_state(g)
+	populatenext!(g, m)
+	update_states!(g, m)
 	return g
 end
 

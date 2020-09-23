@@ -25,8 +25,31 @@ struct SpaceChase <: AbstractAlgo end
 
 pipe(algo::Type{SpaceChase}, s::SType, i::Int) = flow(canmove(s, i)..., morespace(s, i))
 
+# TODO: cleanup
+include("snakefillA.jl")
+include("snakefillC.jl")
+
+function ca_run(T, st; nullhead=nothing, move=nothing)
+	maxrun = st.config.width * st.config.height
+	gr = createCA(T, st)
+	nullhead != nothing && setnullhead!(gr, nullhead, move)
+	for i=1:maxrun
+		CA.step!(gr)
+		isempty(gr.seeds) && break
+	end
+	return gr
+end
+
+function setnullhead!(gr::Grid{SnakefillC,SnakefillCGlobal}, nullhead, move)
+	nexthead = nullhead .+ move
+	cellid = gr.cells[nexthead...].state.id
+	st = gr.cells[nullhead...].state
+	gr.cells[nullhead...].state = setnullhead(st, cellid)
+end
+
 spaceF = (s, i) -> reachableclusters(s, i)
-function morespace(s::SType, i::Int, f=spaceF)
+spaceFCA = (s, i) -> compile(ca_run(SnakefillC, s))
+function morespace(s::SType, i::Int, f=spaceFCA)
 	c, d, r = f(s, i)
 	I = head(s.snakes[i])
 	return y -> begin
@@ -36,6 +59,31 @@ function morespace(s::SType, i::Int, f=spaceF)
 			d[v]
 		end
 		return y[Y .== maximum(Y)]
+	end
+end
+
+# ==============================================================
+#                       SomeSpaceChase
+# ==============================================================
+
+# Follow spacious clusters on the board
+struct SomeSpaceChase <: AbstractAlgo end
+
+pipe(algo::Type{SomeSpaceChase}, s::SType, i::Int) = flow(canmove(s, i)..., somespace(s, i))
+
+function somespace(s::SType, i::Int, f=spaceFCA)
+	c, d, r = f(s, i)
+	I = head(s.snakes[i])
+	return y -> begin
+		# println(colorarray(c))
+		# @show r
+		Y = map(y) do x
+			v = c[(x .+ I)...]
+			(!(haskey(r, i)) || !(v in r[i])) && return x=>0
+			x=>d[v]
+		end
+		# @show Y
+		__betterthanavg__(Dict(Y...))[2]
 	end
 end
 

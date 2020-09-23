@@ -140,8 +140,9 @@ end
 function __scaledreduce__(q::Dict{A,T}) where {A,T}
 	Q = collect(pairs(q))
 	v = maximum(map(x -> x[2], Q))
+	v == 0 && return 0, []
 	# that's a random threshold
-	v, map(y -> y[1], filter(x -> x[2] // v >= 85 // 100, Q))
+	v, map(y -> y[1], filter(x -> x[2] // v >= 75 // 100, Q))
 end
 
 # ==============================================================

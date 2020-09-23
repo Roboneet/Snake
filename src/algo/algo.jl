@@ -12,12 +12,12 @@ abstract type AbstractAlgo end
 
 include("../utils/frames.jl")
 
+include("Basic.jl")
 include("clustering.jl")
 include("partialexplore.jl")
 include("utils.jl")
 include("Lookahead.jl")
 include("Value.jl")
-include("Basic.jl")
 include("Grenade.jl")
 include("Cupcake.jl")
 include("Kettle.jl")
