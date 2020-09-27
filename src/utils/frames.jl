@@ -67,9 +67,9 @@ function printtable(io::IO, headers, rows, alivelist)
 	cr = [merge(cc.df, cc.bd)]
 	for i=1:length(rows)
 		m = merge(cc.df, Crayon(background=SNAKE_COLORS[i]))
-		if !alivelist[i]
-			m = merge(m, cc.st)
-		end
+# 		if !alivelist[i]
+# 			m = merge(m, cc.st)
+# 		end
 		push!(cr, m)
 	end
 

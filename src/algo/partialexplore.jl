@@ -49,6 +49,11 @@ function partialvalue(::Type{PartialCoop}, st::SType, i::Int; verbose=false)
 		m = first(p)
 		rc = last(p)
 		c, d, r = compile(rc)
+		for s in st.snakes
+		if !haskey(r, id(s))
+			r[id(s)] = []
+		end
+		end
 		l = length(st.snakes)
 		return m=>[coop(c, d, r, l)]
 	end
