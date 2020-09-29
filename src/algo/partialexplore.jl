@@ -38,9 +38,9 @@ function partialmove(st::SType, snakeid::Int; kwargs...)
 	return (move::Tuple{Int,Int}) -> begin
 		p = Union{Tuple{Int,Int},Nothing}[nothing for i=1:length(st.snakes)]
 		p[snakeid] = move
-		# rcstate = __reachableclusters__(cells(st), st.snakes; moves=p, hero=snakeid)
-		gr = ca_run(SnakefillC, st; nullhead=head(st.snakes[snakeid]), move=move)
-		return move => gr
+		rcstate = __reachableclusters__(cells(st), st.snakes; moves=p, hero=snakeid)
+		# gr = ca_run(SnakefillC, st; nullhead=head(st.snakes[snakeid]), move=move)
+		return move => rcstate
 	end
 end
 
@@ -58,6 +58,9 @@ function partialvalue(::Type{PartialCoop}, st::SType, i::Int; verbose=false)
 		return m=>[coop(c, d, r, l)]
 	end
 end
+
+gboard(rc::RCState) = rc.bfs.gboard
+gboard(gr::Grid) = visit.(states(rc))
 
 function maxminlen(mat, clens, root, gboard, i)
 	!haskey(root, i) && return 0
@@ -92,7 +95,7 @@ function partialvalue(::Type{PartialPunk}, st::SType, i::Int; verbose=false)
 		mat, clens, root = compile(rc)
 		v = abs_spacevalue(st, i, mat, clens, haskey(root, i) ? root[i] : [])
 		f = food_available(rc, st, i) + 1
-		k = maxminlen(mat, clens, root, visit.(states(rc)), i)
+		k = maxminlen(mat, clens, root, gboard(rc), i)
 		if verbose
 			@show eng(m)
 			println(colorarray(mat))
