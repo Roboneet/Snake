@@ -103,7 +103,7 @@ function partialvalue(::Type{PartialPunk}, st::SType, i::Int; verbose=false)
 			@show v, f
 			println("="^10)
 		end
-		return m=>[v, f]
+		return m=>[v, k, f]
 	end
 end
 
