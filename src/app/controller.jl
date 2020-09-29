@@ -2,7 +2,7 @@ include("utils.jl")
 # include("store.jl")
 
 const punk = TreeSearch{NotBad,Punk,SeqLocalSearch{2}}
-const ff_punk = PartialExplore{PartialSelect,PartialPunk,true}
+const ff_punk = PartialExplore{PartialScaledSelect,PartialPunk,true}
 const scaled = PartialExplore{PartialScaled,PartialPunk,true}
 algoDict = Dict()
 algoDict["default"] = Grenade
